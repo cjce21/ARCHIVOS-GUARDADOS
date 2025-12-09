@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafío Matemático - Refuerzo Matemático</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7; 
+            transition: background-color 0.3s ease;
+        }
+        .digit-input {
+            width: 1.6rem; 
+            height: 2.2rem; 
+            text-align: center;
+            font-size: 1.3rem; 
+            border: 2px solid #ccc;
+            border-radius: 0.5rem;
+            margin-left: 0.2rem; 
+            transition: all 0.2s;
+            background-color: white;
+            color: #333;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        .digit-input:focus {
+            border-color: #3b82f6; 
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+            outline: none;
+        }
+        .operation-line {
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            font-size: 2rem; 
+            font-weight: 700;
+            line-height: 1.1; 
+            padding-right: 0.5rem; 
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        .operator {
+            font-size: 1.3rem; 
+            padding-right: 0.3rem;
+            width: 1.3rem;
+            text-align: right;
+        }
+        .number-display {
+            min-width: 8rem; 
+            text-align: right;
+            padding-right: 0.3rem;
+            white-space: pre; 
+        }
+        .divider {
+            height: 3px; 
+            background-color: #333;
+            width: 100%;
+            margin-top: 0.3rem;
+            margin-bottom: 0.3rem;
+        }
+         /* Animación de carga */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col items-center justify-center p-4 md:p-10">
+    
+    <!-- Pantalla de carga inicial -->
+    <div id="loading-screen" class="flex flex-col items-center justify-center">
+        <div class="loader"></div>
+        <p class="mt-4 text-gray-600">Cargando datos...</p>
+    </div>
+
+    <div id="app-container" class="w-full max-w-4xl mx-auto bg-white p-4 flex-shrink-0 hidden">
+
+        <!-- Pantalla de Inicio (Menú Principal) -->
+        <div id="start-screen" class="p-4">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-blue-600 mb-8 text-center">Menú Principal</h1>
+            
+            <p class="text-xl text-gray-600 mb-4 text-center"><span id="welcome-name" class="font-bold text-blue-600">Estudiante</span>, selecciona las operaciones:</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+                <button data-op="+" class="op-select-btn bg-green-500 hover:bg-green-600 text-white font-bold py-4 md:py-6 px-4 rounded-xl shadow-xl transition duration-300 transform hover:scale-105 border-4 border-transparent">
+                    Suma (+)
+                </button>
+                <button data-op="-" class="op-select-btn bg-red-500 hover:bg-red-600 text-white font-bold py-4 md:py-6 px-4 rounded-xl shadow-xl transition duration-300 transform hover:scale-105 border-4 border-transparent">
+                    Resta (-)
+                </button>
+                <button data-op="*" class="op-select-btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 md:py-6 px-4 rounded-xl shadow-xl transition duration-300 transform hover:scale-105 border-4 border-transparent">
+                    Multiplicación (×)
+                </button>
+                <button data-op="/" class="op-select-btn bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 md:py-6 px-4 rounded-xl shadow-xl transition duration-300 transform hover:scale-105 border-4 border-transparent">
+                    División (÷)
+                </button>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-4 mb-8 text-white text-center">
+                <button id="start-normal-btn" class="flex-1 bg-green-500 hover:bg-green-600 p-4 rounded-xl shadow-lg transition transform hover:scale-105">
+                    <h3 class="font-bold text-xl">Normal</h3>
+                    <p class="font-normal text-sm opacity-90">Practica sin tiempo y sin afectar tu progreso.</p>
+                </button>
+                <button id="start-competitive-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 p-4 rounded-xl shadow-lg transition transform hover:scale-105">
+                    <h3 class="font-bold text-xl">Competitivo</h3>
+                    <p class="font-normal text-sm opacity-90">Juega contra el reloj y sube de nivel.</p>
+                </button>
+            </div>
+
+            <div id="start-error" class="text-red-500 font-semibold mb-4 hidden text-center"></div>
+
+            <button id="view-progress-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-extrabold text-lg md:text-xl py-4 rounded-xl shadow-md transition duration-300 mt-4">
+                Ver Progreso Actual
+            </button>
+             <div class="mt-8 text-center text-gray-400 text-sm">
+                Desafío Matemático - Un juego creado por el Tío Christopher | By Didac-Click Group.
+            </div>
+        </div>
+
+        <!-- Pantalla de Progreso -->
+        <div id="progress-screen" class="hidden p-4">
+             <div class="flex items-center justify-center mb-2">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-blue-600 text-center">Progreso de </h1>
+                <div class="ml-2 flex items-center gap-2">
+                    <span id="progress-name" class="text-3xl md:text-4xl font-extrabold text-blue-600"></span>
+                    <button id="edit-name-btn" class="text-gray-500 hover:text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <!-- Campo para editar nombre (oculto por defecto) -->
+            <div id="edit-name-container" class="hidden flex-col items-center mt-2 mb-4">
+                <input type="text" id="edit-name-input" class="w-full max-w-xs p-2 border-2 border-gray-300 rounded-lg text-center">
+                <button id="save-new-name-btn" class="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Guardar Nombre</button>
+            </div>
+            <p class="text-base md:text-lg text-gray-600 mb-8 text-center">Revisa el nivel de dificultad que has alcanzado en cada operación.</p>
+
+            <div class="bg-gray-100 p-6 rounded-2xl mb-8">
+                <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-4">Detalle por Operación:</h2>
+                <div id="progress-summary" class="text-lg md:text-xl space-y-3">
+                </div>
+            </div>
+
+            <button id="back-to-menu-from-progress-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white font-extrabold text-xl py-4 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.01]">
+                Volver al Menú Principal
+            </button>
+        </div>
+
+        <!-- Pantalla de Juego -->
+        <div id="game-screen" class="hidden p-4">
+            
+            <p class="text-lg md:text-xl font-bold text-gray-700 mb-4">Jugador(a): <span id="game-player-name" class="text-pink-600"></span></p>
+
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+                <p class="text-lg md:text-xl font-bold text-gray-700">Nivel: <span id="current-level-display" class="text-blue-600">1</span> (<span id="digit-count-display">1</span> <span id="digit-word-display">dígito</span>)</p>
+                <p id="mastery-info" class="text-lg md:text-xl font-bold text-gray-700 text-center">Progreso: <span id="mastery-count-display" class="text-green-500"></span></p>
+            </div>
+
+            <div id="timer-container" class="bg-blue-500 text-white p-3 rounded-xl mb-4 text-center shadow-lg">
+                <div id="timer-display" class="text-3xl font-extrabold tracking-widest">--:--</div>
+                <p class="text-xs mt-1">Tiempo restante</p>
+                <p class="text-sm mt-1">Bono: <span id="time-bonus-pool-display" class="font-bold text-yellow-300">0</span>s</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl flex flex-col items-center shadow-xl border border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-700 mb-3">Resuelve la Operación:</h2>
+
+                <div id="problem-display" class="flex flex-col items-end w-full max-w-xs mb-3">
+                </div>
+                <div class="divider w-full max-w-xs"></div>
+                <div id="answer-inputs" class="flex justify-end w-full max-w-xs mt-2">
+                </div>
+
+                <button id="submit-answer-btn" class="mt-6 bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105">
+                    Revisar Respuesta
+                </button>
+                <div id="inline-feedback" class="mt-4 h-6 text-center text-xl font-bold"></div>
+            </div>
+
+            <button id="back-to-menu-btn" class="mt-6 text-gray-500 hover:text-gray-700 text-sm mx-auto block">
+                Volver al Menú Principal
+            </button>
+        </div>
+    </div>
+    
+    <!-- MODALS -->
+    <!-- Modal de Bienvenida -->
+    <div id="welcome-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+         <div class="bg-white p-6 rounded-2xl shadow-2xl text-center max-w-md w-full text-gray-800">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-blue-600 mb-4">Desafío Matemático</h1>
+            <p class="text-base md:text-lg text-gray-700 mb-6">¡Pon a prueba tus habilidades y mejora tu agilidad mental!</p>
+            <button id="continue-from-welcome-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold text-xl py-3 px-8 rounded-xl shadow-xl transition duration-300 transform hover:scale-105">
+                Continuar
+            </button>
+        </div>
+    </div>
+    
+    <!-- Modal de Ingreso de Nombre -->
+    <div id="name-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-6 rounded-xl shadow-2xl text-center max-w-sm w-full border-4 border-blue-500">
+            <h3 class="text-2xl font-bold text-blue-600 mb-4">¡Identifícate para Guardar!</h3>
+            <p class="text-md text-gray-600 mb-4">Ingresa tu primer nombre para personalizar tu progreso.</p>
+            
+            <input type="text" id="modal-name-input" placeholder="Tu primer nombre (Ej: Ana)" 
+                   class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300 text-xl mb-4">
+                   
+            <button id="save-name-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition duration-300">
+                Comenzar
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Importaciones de Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- Variables Globales ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const LOCAL_STORAGE_KEY = 'desafioMatematicoProgresoLocal';
+
+        let app, auth, db, userId, unsubscribe;
+        let isInitialLoad = true;
+        const MISTAKE_LIMIT_FOR_LEVEL_DOWN = 3;
+
+        let gameState = {
+            userName: '',
+            gameMode: 'normal',
+            selectedOperations: [], 
+            masteryGoal: 5,
+            problemsTotalPerSession: 10, 
+            problemsSolvedInSession: 0, 
+            consecutiveCorrect: 0, 
+            mistakesInLevel: {'+': 0, '-': 0, '*': 0, '/': 0},
+            progress: {'+': 1, '-': 1, '*': 1, '/': 1},
+            timeBonus: 0
+        };
+
+        let sessionProgress = {};
+        let currentProblem = null;
+        let timerInterval = null;
+        let timeLimitSeconds = 0;
+        let secondsRemaining = 0;
+        let opToExclude = null;
+
+        const DOMElements = {
+            loadingScreen: document.getElementById('loading-screen'),
+            appContainer: document.getElementById('app-container'),
+            welcomeModal: document.getElementById('welcome-modal'),
+            startScreen: document.getElementById('start-screen'),
+            progressScreen: document.getElementById('progress-screen'),
+            gameScreen: document.getElementById('game-screen'),
+            opSelectBtns: document.querySelectorAll('.op-select-btn'),
+            startNormalBtn: document.getElementById('start-normal-btn'),
+            startCompetitiveBtn: document.getElementById('start-competitive-btn'),
+            viewProgressBtn: document.getElementById('view-progress-btn'),
+            backToMenuFromProgressBtn: document.getElementById('back-to-menu-from-progress-btn'),
+            startError: document.getElementById('start-error'),
+            progressSummary: document.getElementById('progress-summary'),
+            levelDisplay: document.getElementById('current-level-display'),
+            digitCountDisplay: document.getElementById('digit-count-display'),
+            digitWordDisplay: document.getElementById('digit-word-display'),
+            masteryInfo: document.getElementById('mastery-info'),
+            masteryCountDisplay: document.getElementById('mastery-count-display'),
+            timerContainer: document.getElementById('timer-container'),
+            timerDisplay: document.getElementById('timer-display'),
+            timeBonusPoolDisplay: document.getElementById('time-bonus-pool-display'),
+            problemDisplay: document.getElementById('problem-display'),
+            answerInputs: document.getElementById('answer-inputs'),
+            submitAnswerBtn: document.getElementById('submit-answer-btn'),
+            backToMenuBtn: document.getElementById('back-to-menu-btn'),
+            inlineFeedback: document.getElementById('inline-feedback'),
+            nameModal: document.getElementById('name-modal'),
+            modalNameInput: document.getElementById('modal-name-input'),
+            saveNameBtn: document.getElementById('save-name-btn'),
+            welcomeName: document.getElementById('welcome-name'),
+            progressName: document.getElementById('progress-name'),
+            gamePlayerName: document.getElementById('game-player-name'),
+            editNameBtn: document.getElementById('edit-name-btn'),
+            editNameContainer: document.getElementById('edit-name-container'),
+            editNameInput: document.getElementById('edit-name-input'),
+            saveNewNameBtn: document.getElementById('save-new-name-btn'),
+            continueFromWelcomeBtn: document.getElementById('continue-from-welcome-btn'),
+        };
+
+        // ===============================================
+        // INICIALIZACIÓN Y DATOS
+        // ===============================================
+
+        async function initFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        await loadGameData();
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                });
+            } catch (error) {
+                console.error("Error al inicializar Firebase:", error);
+                loadGameDataFromLocal();
+                finishLoading(); 
+            }
+        }
+        
+        async function loadGameData() {
+            if (!db || !userId) {
+                loadGameDataFromLocal();
+                finishLoading();
+                return;
+            }
+            if (unsubscribe) unsubscribe();
+            
+            const docRef = doc(db, "artifacts", appId, "users", userId);
+            
+            unsubscribe = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const onlineData = docSnap.data();
+                    gameState.userName = onlineData.userName || gameState.userName;
+                    gameState.progress = onlineData.progress || gameState.progress;
+                } else if (isInitialLoad) {
+                    loadGameDataFromLocal();
+                }
+
+                if (isInitialLoad) {
+                    finishLoading();
+                    isInitialLoad = false;
+                } else {
+                    updateAllUserNames();
+                }
+            }, (error) => {
+                console.error("Error al escuchar datos de Firestore:", error);
+                 if (isInitialLoad) {
+                    loadGameDataFromLocal();
+                    finishLoading();
+                    isInitialLoad = false;
+                }
+            });
+        }
+
+        function loadGameDataFromLocal() {
+            try {
+                const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (storedData) {
+                    const localState = JSON.parse(storedData);
+                    gameState.userName = localState.userName || '';
+                    gameState.progress = localState.progress || {'+': 1, '-': 1, '*': 1, '/': 1};
+                }
+            } catch (e) { console.error("Error cargando desde localStorage:", e); }
+        }
+
+        async function saveGameData() {
+            if (gameState.gameMode !== 'competitivo') return;
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+                userName: gameState.userName,
+                progress: gameState.progress
+            }));
+            if (!db || !userId) return;
+            try {
+                const docRef = doc(db, "artifacts", appId, "users", userId);
+                await setDoc(docRef, {
+                    userName: gameState.userName,
+                    progress: gameState.progress
+                }, { merge: true });
+            } catch (error) { console.error("Error al guardar en Firebase: ", error); }
+        }
+        
+        function finishLoading() {
+            updateAllUserNames();
+            DOMElements.loadingScreen.classList.add('hidden');
+            DOMElements.welcomeModal.classList.remove('hidden');
+        }
+        
+        // ===============================================
+        // LÓGICA DE UI Y JUEGO
+        // ===============================================
+        
+        function updateAllUserNames() {
+            const name = gameState.userName || 'estudiante';
+            DOMElements.welcomeName.textContent = name;
+            DOMElements.progressName.textContent = name;
+            DOMElements.gamePlayerName.textContent = name;
+        }
+
+        function updateProgressSummary() {
+            let html = '';
+            for (const op in gameState.progress) {
+                const level = gameState.progress[op];
+                const opName = {'+': 'Suma', '-': 'Resta', '*': 'Multiplicación', '/': 'División'}[op];
+                const digitCount = Math.min(level, 10); 
+                html += `<p class="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                    <span class="font-medium text-gray-800">${opName}:</span>
+                    <span class="font-bold ${level >= 5 ? 'text-green-600' : 'text-blue-500'}">Nivel ${level} (${digitCount} ${digitCount === 1 ? 'dígito' : 'dígitos'})</span>
+                </p>`;
+            }
+            DOMElements.progressSummary.innerHTML = html || '<p class="text-center text-gray-500">Aún no hay progreso registrado. ¡Empieza a jugar!</p>';
+        }
+
+        function showScreen(screenName) {
+            DOMElements.appContainer.classList.remove('hidden');
+            const screens = ['start', 'game', 'progress'];
+            screens.forEach(id => {
+                const screenEl = DOMElements[`${id}Screen`];
+                if (screenEl) screenEl.classList.add('hidden');
+            });
+            
+            const targetScreen = DOMElements[`${screenName}Screen`];
+            if (targetScreen) {
+                targetScreen.classList.remove('hidden');
+            } else if (screenName === 'name-modal') {
+                DOMElements.nameModal.classList.remove('hidden');
+                DOMElements.modalNameInput.focus();
+            }
+
+            if (screenName === 'start' || screenName === 'progress' || screenName === 'game') {
+                updateAllUserNames();
+            }
+        }
+
+        function generateNumber(digits) {
+            if (digits < 1) digits = 1; 
+            const min = Math.pow(10, digits - 1);
+            const max = Math.pow(10, digits) - 1;
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateProblem() {
+            let potentialOps = [...gameState.selectedOperations];
+            if (opToExclude && potentialOps.length > 1) {
+                potentialOps = potentialOps.filter(op => op !== opToExclude);
+            }
+            opToExclude = null;
+
+            const op = potentialOps[Math.floor(Math.random() * potentialOps.length)];
+            const progressSource = gameState.gameMode === 'competitivo' ? gameState.progress : sessionProgress;
+            const level = progressSource[op]; 
+            const digits = Math.min(level, 10); 
+            const maxResult = Math.pow(10, digits); 
+
+            let num1, num2, result;
+            let attempts = 0;
+
+            if (op === '+') {
+                attempts = 0;
+                do {
+                    num1 = generateNumber(digits);
+                    num2 = generateNumber(digits);
+                    result = num1 + num2;
+                    attempts++;
+                } while (result >= maxResult && attempts < 50);
+                if (result >= maxResult) {
+                     num1 = generateNumber(digits > 1 ? digits - 1 : 1); 
+                     num2 = generateNumber(digits > 1 ? digits - 1 : 1);
+                     result = num1 + num2; 
+                }
+            } else if (op === '-') {
+                do {
+                    num1 = generateNumber(digits);
+                    num2 = generateNumber(digits);
+                } while (num1 <= num2);
+                result = num1 - num2;
+            } else if (op === '*') {
+                const maxFactor2Digits = Math.min(3, digits); 
+                do {
+                    num1 = generateNumber(digits); 
+                    num2 = generateNumber(maxFactor2Digits);
+                    result = num1 * num2;
+                    attempts++;
+                } while (result >= maxResult && attempts < 20);
+                if (attempts >= 20) {
+                     num1 = generateNumber(Math.floor(digits / 2) + 1);
+                     num2 = generateNumber(Math.floor(digits / 2));
+                     result = num1 * num2;
+                }
+            } else if (op === '/') {
+                if (digits === 1) {
+                    do {
+                        num2 = generateNumber(1);
+                        result = generateNumber(1);
+                        num1 = num2 * result;
+                    } while (num1 >= 10);
+                } else {
+                    let divisorDigits = Math.min(2, digits);
+                    do {
+                        num2 = generateNumber(divisorDigits); 
+                        result = generateNumber(digits); 
+                        num1 = num2 * result; 
+                    } while (num1.toString().length > digits + 2); 
+                }
+                if (result === 0) return generateProblem();
+            }
+
+            const num1Str = num1.toString();
+            const num2Str = num2.toString();
+            const resultStr = result.toString();
+            if (resultStr.length > digits) return generateProblem();
+
+            currentProblem = { op, num1, num2, result, num1Str, num2Str, resultStr, digits };
+            
+            if(gameState.gameMode === 'competitivo'){
+                let baseTime, complexityFactor;
+                if (op === '+' || op === '-') {
+                    baseTime = 20;
+                    complexityFactor = 8;
+                } else {
+                    baseTime = 30;
+                    complexityFactor = 15;
+                }
+                timeLimitSeconds = baseTime + (resultStr.length * complexityFactor);
+            }
+
+            DOMElements.levelDisplay.textContent = level;
+            DOMElements.digitCountDisplay.textContent = digits;
+            DOMElements.digitWordDisplay.textContent = digits === 1 ? 'dígito' : 'dígitos';
+            updateMasteryDisplay();
+            updateBonusPoolDisplay();
+        }
+
+        function renderProblem() {
+            if (!currentProblem) return;
+            const { op, num1Str, num2Str, resultStr } = currentProblem;
+            const maxLen = Math.max(num1Str.length, num2Str.length, resultStr.length);
+            const displayDiv = DOMElements.problemDisplay;
+            const inputsDiv = DOMElements.answerInputs;
+            displayDiv.innerHTML = '';
+            inputsDiv.innerHTML = '';
+            const formatNumber = (numStr) => `<div class="number-display">${' '.repeat(maxLen - numStr.length)}${numStr}</div>`;
+            displayDiv.innerHTML += `<div class="operation-line"><span class="operator invisible"> </span>${formatNumber(num1Str)}</div>`;
+            const operatorSymbol = op === '*' ? '×' : op === '/' ? '÷' : op;
+            displayDiv.innerHTML += `<div class="operation-line"><span class="operator text-${op === '+' ? 'green' : op === '-' ? 'red' : op === '*' ? 'yellow' : 'purple'}-600">${operatorSymbol}</span>${formatNumber(num2Str)}</div>`;
+            for (let i = 0; i < resultStr.length; i++) {
+                const input = document.createElement('input');
+                input.type = 'tel'; 
+                input.maxLength = 1;
+                input.id = `input-${i}`; 
+                input.className = 'digit-input';
+                inputsDiv.prepend(input); 
+            }
+            const unitsInput = inputsDiv.lastElementChild;
+            if (unitsInput) unitsInput.focus();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            secondsRemaining = timeLimitSeconds;
+            const updateDisplay = () => {
+                const display = DOMElements.timerDisplay;
+                const minutes = Math.floor(secondsRemaining / 60);
+                const seconds = secondsRemaining % 60;
+                display.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                display.classList.toggle('text-red-500', secondsRemaining <= 10 && gameState.timeBonus === 0);
+            };
+            updateDisplay();
+            timerInterval = setInterval(() => {
+                secondsRemaining--;
+                updateDisplay();
+                if (secondsRemaining <= 0) {
+                    if (gameState.timeBonus > 0) {
+                        const bonusToUse = Math.min(gameState.timeBonus, 15);
+                        secondsRemaining += bonusToUse;
+                        gameState.timeBonus -= bonusToUse;
+                        updateBonusPoolDisplay();
+                        const timerDisp = DOMElements.timerDisplay;
+                        timerDisp.classList.add('bg-yellow-400', 'text-black', 'rounded-lg');
+                        setTimeout(() => timerDisp.classList.remove('bg-yellow-400', 'text-black', 'rounded-lg'), 500);
+                    } else {
+                        clearInterval(timerInterval);
+                        checkAnswer(true);
+                    }
+                }
+            }, 1000);
+        }
+
+        function stopTimer() { clearInterval(timerInterval); }
+        
+        function updateBonusPoolDisplay() {
+            DOMElements.timeBonusPoolDisplay.textContent = gameState.timeBonus;
+        }
+
+        function checkAnswer(isTimeout = false) {
+            if(gameState.gameMode === 'competitivo') stopTimer();
+            DOMElements.submitAnswerBtn.disabled = true;
+            const inputs = Array.from(DOMElements.answerInputs.children);
+            let userAnswerRaw = inputs.map(input => input.value).join('');
+            
+            if (!isTimeout && userAnswerRaw.trim().length === 0) {
+                 DOMElements.inlineFeedback.textContent = "Debes ingresar una respuesta.";
+                 DOMElements.inlineFeedback.className = 'mt-4 h-6 text-center text-xl font-bold text-orange-500';
+                 setTimeout(() => {
+                    DOMElements.inlineFeedback.textContent = "";
+                    DOMElements.submitAnswerBtn.disabled = false;
+                    const unitsInput = DOMElements.answerInputs.lastElementChild;
+                    if (unitsInput) unitsInput.focus();
+                 }, 1500);
+                 return;
+            }
+
+            let userAnswer = userAnswerRaw.padStart(currentProblem.resultStr.length, '0');
+            const isCorrect = userAnswer === currentProblem.resultStr && !isTimeout;
+            opToExclude = isTimeout ? currentProblem.op : null;
+
+            const feedbackColor = isCorrect ? 'green' : 'red';
+            inputs.forEach(input => {
+                input.classList.remove('border-gray-300');
+                input.classList.add(`border-${feedbackColor}-500`, `ring-4`, `ring-${feedbackColor}-200`);
+            });
+
+            const feedbackDiv = DOMElements.inlineFeedback;
+            if (isCorrect) {
+                if(gameState.gameMode === 'competitivo') {
+                    const timeTaken = timeLimitSeconds - secondsRemaining;
+                    if (timeTaken < timeLimitSeconds * 0.4) {
+                        const bonusAwarded = 10;
+                        gameState.timeBonus += bonusAwarded;
+                        updateBonusPoolDisplay();
+                        feedbackDiv.textContent = `¡Rápido! +${bonusAwarded}s de bono`;
+                        feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-cyan-500';
+                    } else {
+                        feedbackDiv.textContent = '¡Correcto!';
+                        feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-green-600';
+                    }
+                } else {
+                     feedbackDiv.textContent = '¡Correcto!';
+                     feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-green-600';
+                }
+            } else if (isTimeout) {
+                feedbackDiv.textContent = `¡Tiempo! La respuesta era: ${currentProblem.resultStr}`;
+                feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-orange-500';
+            } else {
+                feedbackDiv.textContent = `La respuesta era: ${currentProblem.resultStr}`;
+                feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-red-600';
+            }
+
+            const op = currentProblem.op;
+            const progressSource = gameState.gameMode === 'competitivo' ? gameState.progress : sessionProgress;
+            const currentLevel = progressSource[op];
+            let sessionEnded = false;
+            let levelUpOccurred = false;
+            let levelDownOccurred = false;
+
+            if (isCorrect) {
+                gameState.consecutiveCorrect++;
+                gameState.mistakesInLevel[op] = 0;
+            } else {
+                gameState.consecutiveCorrect = 0;
+                if (currentLevel > 1) gameState.mistakesInLevel[op]++;
+            }
+            
+            gameState.problemsSolvedInSession++;
+
+            if (gameState.mistakesInLevel[op] >= MISTAKE_LIMIT_FOR_LEVEL_DOWN && currentLevel > 1) {
+                progressSource[op]--;
+                levelDownOccurred = true;
+                sessionEnded = true;
+                feedbackDiv.textContent = `¡Bajas al Nivel ${progressSource[op]}!`;
+                feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-purple-600';
+            } else if (gameState.consecutiveCorrect >= gameState.masteryGoal) {
+                sessionEnded = true;
+                if (currentLevel < 10) {
+                    progressSource[op]++;
+                    levelUpOccurred = true;
+                    feedbackDiv.textContent = `¡Nivel ${currentLevel + 1} Desbloqueado!`;
+                    feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-yellow-500';
+                } else {
+                     feedbackDiv.textContent = `¡Maestro del Nivel ${currentLevel}!`;
+                     feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-yellow-500';
+                }
+            } else if (gameState.gameMode === 'competitivo' && gameState.problemsSolvedInSession >= gameState.problemsTotalPerSession) {
+                sessionEnded = true;
+                feedbackDiv.textContent = '¡Sesión terminada! ¡Sigue así!';
+                feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-blue-600';
+            }
+            
+            if (sessionEnded) {
+                gameState.consecutiveCorrect = 0;
+                gameState.problemsSolvedInSession = 0;
+                gameState.mistakesInLevel[op] = 0;
+            }
+            
+            saveGameData();
+            updateMasteryDisplay();
+
+            setTimeout(() => {
+                inputs.forEach(input => input.classList.remove(`border-green-500`, `border-red-500`, `ring-4`, `ring-green-200`, `ring-red-200`));
+                feedbackDiv.textContent = '';
+                DOMElements.submitAnswerBtn.disabled = false;
+                startGameRound();
+            }, levelUpOccurred || sessionEnded || levelDownOccurred ? 2500 : 1500);
+        }
+        
+        function updateMasteryDisplay() {
+            DOMElements.masteryInfo.classList.remove('hidden');
+            DOMElements.masteryCountDisplay.innerHTML = `<span class="text-green-600">${gameState.consecutiveCorrect}/${gameState.masteryGoal} (Racha)</span>`;
+            if (gameState.gameMode === 'competitivo') {
+                DOMElements.masteryCountDisplay.innerHTML += `<span class="text-gray-400 mx-2">|</span><span class="text-blue-600">${gameState.problemsSolvedInSession}/${gameState.problemsTotalPerSession} (Problemas)</span>`;
+            }
+        }
+
+        function startGameRound() {
+            if (gameState.selectedOperations.length === 0) {
+                showScreen('start'); return;
+            }
+            const isCompetitive = gameState.gameMode === 'competitivo';
+            DOMElements.timerContainer.classList.toggle('hidden', !isCompetitive);
+            DOMElements.masteryInfo.classList.remove('hidden');
+
+            showScreen('game');
+            generateProblem();
+            renderProblem();
+            if (isCompetitive) startTimer();
+        }
+        
+        function setupEventListeners() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    if (!DOMElements.gameScreen.classList.contains('hidden') && !DOMElements.submitAnswerBtn.disabled) {
+                        DOMElements.submitAnswerBtn.click();
+                    } else if (!DOMElements.nameModal.classList.contains('hidden')) {
+                        DOMElements.saveNameBtn.click();
+                    } else if (!DOMElements.welcomeModal.classList.contains('hidden')){
+                        DOMElements.continueFromWelcomeBtn.click();
+                    }
+                }
+            });
+
+            DOMElements.continueFromWelcomeBtn.addEventListener('click', () => {
+                DOMElements.welcomeModal.classList.add('hidden');
+                DOMElements.appContainer.classList.remove('hidden');
+                if (!gameState.userName) {
+                    showScreen('name-modal');
+                } else {
+                    showScreen('start');
+                }
+            });
+
+            DOMElements.saveNameBtn.addEventListener('click', () => {
+                const name = DOMElements.modalNameInput.value.trim().split(' ')[0];
+                if (name) {
+                    gameState.userName = name;
+                    saveGameData();
+                    updateAllUserNames();
+                    DOMElements.nameModal.classList.add('hidden');
+                    showScreen('start'); 
+                } else {
+                    DOMElements.modalNameInput.placeholder = "¡Nombre requerido!";
+                    DOMElements.modalNameInput.classList.add('border-red-500');
+                }
+            });
+            
+            DOMElements.answerInputs.addEventListener('input', (e) => {
+                const target = e.target;
+                if (target.matches('.digit-input') && target.value) {
+                    const prev = target.previousElementSibling;
+                    if(prev) prev.focus();
+                    else DOMElements.submitAnswerBtn.click();
+                }
+            });
+
+            DOMElements.answerInputs.addEventListener('keydown', (e) => {
+                const target = e.target;
+                if (e.key === 'Backspace' && target.matches('.digit-input') && !target.value) {
+                    const next = target.nextElementSibling;
+                    if (next) next.focus();
+                }
+            });
+
+            DOMElements.opSelectBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.classList.toggle('border-transparent');
+                    btn.classList.toggle('border-blue-700');
+                    const op = btn.dataset.op;
+                    const index = gameState.selectedOperations.indexOf(op);
+                    index > -1 ? gameState.selectedOperations.splice(index, 1) : gameState.selectedOperations.push(op);
+                });
+            });
+
+            function handleStartGame(mode) {
+                 if (gameState.selectedOperations.length === 0) {
+                    DOMElements.startError.textContent = "Por favor, selecciona al menos una operación.";
+                    DOMElements.startError.classList.remove('hidden'); return;
+                }
+                DOMElements.startError.classList.add('hidden');
+                gameState.gameMode = mode;
+                
+                gameState.consecutiveCorrect = 0;
+                gameState.problemsSolvedInSession = 0;
+                gameState.mistakesInLevel = {'+': 0, '-': 0, '*': 0, '/': 0};
+                
+                if (mode === 'competitivo') {
+                    gameState.timeBonus = 0;
+                    updateBonusPoolDisplay();
+                } else {
+                    sessionProgress = JSON.parse(JSON.stringify(gameState.progress));
+                }
+
+                startGameRound();
+            }
+
+            DOMElements.startNormalBtn.addEventListener('click', () => handleStartGame('normal'));
+            DOMElements.startCompetitiveBtn.addEventListener('click', () => handleStartGame('competitivo'));
+
+            DOMElements.viewProgressBtn.addEventListener('click', () => {
+                updateProgressSummary(); 
+                showScreen('progress');
+            });
+
+            DOMElements.backToMenuFromProgressBtn.addEventListener('click', () => showScreen('start'));
+            DOMElements.submitAnswerBtn.addEventListener('click', () => checkAnswer(false));
+            DOMElements.backToMenuBtn.addEventListener('click', () => { stopTimer(); showScreen('start'); });
+            
+            DOMElements.editNameBtn.addEventListener('click', () => {
+                DOMElements.editNameInput.value = gameState.userName;
+                DOMElements.editNameContainer.classList.remove('hidden');
+                DOMElements.editNameInput.focus();
+            });
+
+            DOMElements.saveNewNameBtn.addEventListener('click', () => {
+                const newName = DOMElements.editNameInput.value.trim().split(' ')[0];
+                if (newName) {
+                    gameState.userName = newName;
+                    saveGameData();
+                    updateAllUserNames();
+                    DOMElements.editNameContainer.classList.add('hidden');
+                }
+            });
+        }
+        
+        // --- INICIAR LA APP ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initFirebase();
+            setupEventListeners();
+        });
+    </script>
+</body>
+</html>
+
+

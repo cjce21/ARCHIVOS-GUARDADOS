@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoo-Lógica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #ffffff; /* Fondo blanco */
+            transition: box-shadow 0.2s ease-in-out;
+        }
+        
+        #game-area {
+            perspective: 1000px;
+        }
+
+        /* Estilo del mazo de cartas */
+        .card-stack {
+            position: relative;
+            width: 224px; /* Ancho base para móviles */
+            height: 308px; /* Alto base para móviles */
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        @media (min-width: 640px) { /* sm breakpoint */
+            .card-stack {
+                width: 256px;
+                height: 352px;
+            }
+        }
+        .card-stack:hover {
+            transform: scale(1.05) rotate(3deg);
+        }
+        .card-stack-item {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 1.5rem;
+            background-color: white;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border: 2px solid #1a202c; /* Borde negro */
+            transition: transform 0.3s ease;
+        }
+        .card-stack-item:nth-child(1) { transform: rotate(-8deg); }
+        .card-stack-item:nth-child(2) { transform: rotate(-2deg); }
+        .card-stack-item:nth-child(3) { transform: rotate(4deg); }
+
+        /* Animación de giro de la carta */
+        .card-container {
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+        .card-container.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 1.5rem;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+            padding: 1rem;
+            border: 2px solid #1a202c; /* Borde negro añadido */
+        }
+        
+        /* Animación del temporizador */
+        @keyframes timer-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); color: #dc2626; }
+        }
+        .timer-warning {
+            animation: timer-pulse 1s infinite;
+        }
+        .modal-enter {
+            animation: modal-enter-animation 0.3s ease-out forwards;
+        }
+        @keyframes modal-enter-animation {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        /* Animación de mazo agitado por tiempo agotado */
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0) rotate(3deg); }
+            20%, 80% { transform: translate3d(2px, 0, 0) rotate(-3deg); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0) rotate(3deg); }
+            40%, 60% { transform: translate3d(4px, 0, 0) rotate(-3deg); }
+        }
+        .animate-shake {
+            animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen overflow-hidden">
+
+    <div id="app-container" class="w-full max-w-2xl mx-auto text-center p-4">
+
+        <!-- Pantalla de Inicio --><div id="start-screen" class="hidden relative flex flex-col justify-center min-h-[500px]">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-black text-black mb-8 uppercase tracking-wider">Zoo-Lógica</h1>
+                <div class="grid grid-cols-1 gap-4 max-w-sm mx-auto">
+                    <button id="start-button" class="bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
+                        Nueva Partida
+                    </button>
+                    <button id="continue-button" class="hidden bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
+                        Continuar Partida
+                    </button>
+                    <button id="grades-button" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-gray-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300 text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                        Ver Calificaciones
+                    </button>
+                </div>
+            </div>
+             <p class="text-sm text-gray-500 mt-12 absolute bottom-0 w-full left-0">
+                © 2025 Zoo-Lógica | Desarrollado por Didac-Click Group.
+            </p>
+        </div>
+        
+        <!-- Pantalla de Calificaciones --><div id="grades-screen" class="hidden">
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-3xl font-black text-black mb-6">Reporte de Calificación</h2>
+                <div id="grades-content" class="space-y-4 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-6 md:space-y-0 text-left"></div>
+                 <button id="back-to-start-button" class="mt-8 bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
+                    Volver
+                </button>
+            </div>
+        </div>
+
+        <!-- Pantalla de Juego --><div id="game-screen" class="hidden">
+            <div class="flex justify-between items-center mb-4 px-2">
+                <button id="home-button" class="text-gray-600 hover:text-green-600 transition-colors p-2 rounded-full hover:bg-gray-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                </button>
+                <div id="progress-display" class="text-lg sm:text-2xl font-bold text-gray-700"></div>
+                <div id="timer-display" class="w-16 text-center text-3xl sm:text-4xl font-black text-green-600">10</div>
+            </div>
+            
+            <div id="game-area" class="relative h-80 sm:h-96 flex items-center justify-center">
+                <div id="played-cards-stack" class="hidden card-stack absolute">
+                    <div class="card-stack-item bg-white" style="transform: rotate(5deg);"></div>
+                    <div class="card-stack-item bg-white" style="transform: rotate(-3deg);"></div>
+                </div>
+                <div id="deck" class="card-stack">
+                    <div class="card-stack-item"></div>
+                    <div class="card-stack-item"></div>
+                    <div class="card-stack-item bg-white flex flex-col items-center justify-center p-2 overflow-hidden">
+                         <img id="deck-image" src="https://i.supaimg.com/37ef4026-991a-42e1-afa0-b2db1a21237f.jpg" alt="Reverso de la carta" class="w-full h-full object-cover rounded-xl">
+                    </div>
+                </div>
+                <div id="current-card-container" class="hidden w-56 h-72 sm:w-64 sm:h-80">
+                    <div class="card-container w-full h-full">
+                        <div class="card-face card-front bg-green-600"></div>
+                        <div class="card-face card-back bg-white shadow-2xl"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="options-container" class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+                <button data-type="Carnívoro" class="option-button bg-red-500 text-white font-bold py-3 sm:py-4 rounded-xl shadow-lg hover:bg-red-600 transition-all transform hover:scale-105 disabled:opacity-50">Carnívoro</button>
+                <button data-type="Herbívoro" class="option-button bg-blue-500 text-white font-bold py-3 sm:py-4 rounded-xl shadow-lg hover:bg-blue-600 transition-all transform hover:scale-105 disabled:opacity-50">Herbívoro</button>
+                <button data-type="Omnívoro" class="option-button bg-yellow-500 text-white font-bold py-3 sm:py-4 rounded-xl shadow-lg hover:bg-yellow-600 transition-all transform hover:scale-105 disabled:opacity-50">Omnívoro</button>
+            </div>
+            <div id="definition-display" class="mt-4 h-12 text-base sm:text-lg text-gray-700 font-medium transition-opacity duration-500"></div>
+        </div>
+    </div>
+    
+    <!-- Modales --><div id="modal-overlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <!-- Modal de Bienvenida --><div id="explanation-modal" class="hidden bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center modal-enter">
+            <h2 class="text-2xl font-black text-black mb-4 whitespace-nowrap">¡Bienvenido a Zoo-Lógica!</h2>
+            <p class="text-black mb-6">
+                Tu objetivo es clasificar el régimen alimenticio de distintas especies. Dispones de 10 segundos por cada animal para demostrar cuánto sabes. ¡Mucha suerte!
+            </p>
+            <button id="understood-button" class="w-full bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
+                Entendido
+            </button>
+        </div>
+
+        <!-- Modal de Feedback --><div id="feedback-modal" class="hidden bg-white p-6 rounded-2xl shadow-2xl max-w-md w-full text-center modal-enter">
+             <div id="feedback-image" class="text-8xl mb-4"></div>
+             <h2 id="feedback-title" class="text-3xl font-black mb-2"></h2>
+             <p id="feedback-text" class="text-black text-left mb-6"></p>
+             <button id="feedback-continue-button" class="w-full bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
+                Continuar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const animals = [
+                // Carnívoros (34)
+                { name: 'León', type: 'Carnívoro', emoji: '🦁', description: 'El león es un superdepredador cuya dieta se basa en la carne de animales que caza, como cebras y ñus.'},
+                { name: 'Tigre', type: 'Carnívoro', emoji: '🐅', description: 'Como cazador solitario, el tigre se alimenta de grandes presas como ciervos y jabalíes.'},
+                { name: 'Lobo', type: 'Carnívoro', emoji: '🐺', description: 'Los lobos cazan en manada para derribar presas grandes como alces y ciervos.'},
+                { name: 'Tiburón', type: 'Carnívoro', emoji: '🦈', description: 'Se alimenta de peces, focas y mamíferos marinos, situándose en la cima de la cadena alimenticia.'},
+                { name: 'Águila', type: 'Carnívoro', emoji: '🦅', description: 'Esta ave rapaz utiliza su aguda vista y garras para cazar peces, roedores y serpientes.'},
+                { name: 'Cocodrilo', type: 'Carnívoro', emoji: '🐊', description: 'Depredador de emboscada, se alimenta de peces, aves y mamíferos que se acercan al agua.'},
+                { name: 'Araña', type: 'Carnívoro', emoji: '🕷️', description: 'Las arañas son depredadores de insectos y otros pequeños invertebrados que atrapan en sus telarañas.'},
+                { name: 'Serpiente', type: 'Carnívoro', emoji: '🐍', description: 'Ingieren a sus presas enteras, que pueden ser desde pequeños roedores hasta animales más grandes.'},
+                { name: 'Guepardo', type: 'Carnívoro', emoji: '🐆', description: 'Conocido por su increíble velocidad, caza mamíferos de tamaño mediano como gacelas.'},
+                { name: 'Oso Polar', type: 'Carnívoro', emoji: '🐻‍❄️', description: 'Su dieta se basa principalmente en focas, que caza en el hielo marino del Ártico.'},
+                { name: 'Búho', type: 'Carnívoro', emoji: '🦉', description: 'Cazador nocturno, se alimenta de roedores, insectos y otras aves pequeñas.'},
+                { name: 'Piraña', type: 'Carnívoro', emoji: '🐟', description: 'Conocidas por sus afilados dientes, las pirañas se alimentan en grupo de peces e insectos.'},
+                { name: 'Orca', type: 'Carnívoro', emoji: '🐳', description: 'Depredador marino tope, su dieta incluye peces, focas e incluso otras ballenas.'},
+                { name: 'Foca', type: 'Carnívoro', emoji: '🦭', description: 'Las focas se alimentan principalmente de peces, calamares y crustáceos que capturan bajo el agua.'},
+                { name: 'Puma', type: 'Carnívoro', emoji: '🐈‍⬛', description: 'Es un depredador adaptable que caza desde ciervos y alces hasta pequeños roedores.'},
+                { name: 'Nutria', type: 'Carnívoro', emoji: '🦦', description: 'Las nutrias tienen una dieta basada en peces, cangrejos y otros invertebrados acuáticos.'},
+                { name: 'Dragón de Komodo', type: 'Carnívoro', emoji: '🦎', description: 'El lagarto más grande del mundo, caza presas como ciervos, cerdos e incluso búfalos.'},
+                { name: 'Lince', type: 'Carnívoro', emoji: '🐈', description: 'Este felino solitario se especializa en cazar conejos y liebres.'},
+                { name: 'Pingüino', type: 'Carnívoro', emoji: '🐧', description: 'Son excelentes nadadores que se alimentan de krill, calamares y peces que cazan en el océano.'},
+                { name: 'Mantis Religiosa', type: 'Carnívoro', emoji: '🦗', description: 'Depredador de emboscada, este insecto se alimenta de otros insectos y arañas.'},
+                { name: 'Mosquito', type: 'Carnívoro', emoji: '🦟', description: 'Las hembras son carnívoras hematófagas, ya que se alimentan de la sangre de otros animales.'},
+                { name: 'Mariquita', type: 'Carnívoro', emoji: '🐞', description: 'Es un importante depredador de pulgones y otros insectos considerados plagas para las plantas.'},
+                { name: 'Escorpión', type: 'Carnívoro', emoji: '🦂', description: 'Cazador nocturno, se alimenta de insectos, arañas y otros escorpiones.'},
+                { name: 'Delfín', type: 'Carnívoro', emoji: '🐬', description: 'Estos mamíferos marinos inteligentes cazan en grupo para alimentarse de peces y calamares.'},
+                { name: 'Rana', type: 'Carnívoro', emoji: '🐸', description: 'Se alimentan de insectos, arañas y gusanos que capturan con su larga y pegajosa lengua.'},
+                { name: 'Murciélago', type: 'Carnívoro', emoji: '🦇', description: 'Se alimenta de insectos, arañas y otros pequeños artrópodos que caza durante la noche.'},
+                { name: 'Langosta', type: 'Carnívoro', emoji: '🦞', description: 'Se alimenta de peces, cangrejos, almejas y otros animales marinos que encuentra en el fondo.'},
+                { name: 'Pulpo', type: 'Carnívoro', emoji: '🐙', description: 'Utiliza sus tentáculos para atrapar cangrejos, almejas y otros crustáceos.'},
+                { name: 'Calamar', type: 'Carnívoro', emoji: '🦑', description: 'Se alimenta de peces y crustáceos que captura con sus largos tentáculos.'},
+                { name: 'T-Rex', type: 'Carnívoro', emoji: '🦖', description: 'Fue uno de los carnívoros más grandes, alimentándose de otros dinosaurios.'},
+                { name: 'Pez Globo', type: 'Carnívoro', emoji: '🐡', description: 'Es principalmente carnívoro y se alimenta de invertebrados con caparazón y algas.'},
+                { name: 'Hiena', type: 'Carnívoro', emoji: '🐾', description: 'Aunque son carroñeras, también son cazadoras eficaces, alimentándose de ñus y cebras.'},
+                { name: 'Zorro', type: 'Carnívoro', emoji: '🦊', description: 'Caza principalmente pequeños roedores, conejos y aves.'},
+                { name: 'Halcón', type: 'Carnívoro', emoji: '🪶', description: 'Es un ave rapaz que caza otras aves, pequeños mamíferos y reptiles.'},
+                
+                // Herbívoros (33)
+                { name: 'Elefante', type: 'Herbívoro', emoji: '🐘', description: 'Es un megaherbívoro que consume grandes cantidades de hierbas, cortezas y frutas.'},
+                { name: 'Jirafa', type: 'Herbívoro', emoji: '🦒', description: 'Gracias a su largo cuello, se especializa en ramonear las hojas y brotes de los árboles.'},
+                { name: 'Vaca', type: 'Herbívoro', emoji: '🐄', description: 'Como rumiante, tiene un sistema digestivo especializado para digerir pastos y forrajes.'},
+                { name: 'Conejo', type: 'Herbívoro', emoji: '🐇', description: 'Su dieta se compone de hierbas y tréboles. Sus dientes crecen continuamente.'},
+                { name: 'Ciervo', type: 'Herbívoro', emoji: '🦌', description: 'Son rumiantes que se alimentan de hojas, ramas, hierbas y brotes tiernos.'},
+                { name: 'Caballo', type: 'Herbívoro', emoji: '🐎', description: 'Es un animal pastador cuya dieta se basa en heno y pasto.'},
+                { name: 'Cebra', type: 'Herbívoro', emoji: '🦓', description: 'Son animales pastadores que se alimentan principalmente de hierbas de baja calidad.'},
+                { name: 'Koala', type: 'Herbívoro', emoji: '🐨', description: 'Tiene una dieta muy especializada, alimentándose casi exclusivamente de hojas de eucalipto.'},
+                { name: 'Panda', type: 'Herbívoro', emoji: '🐼', description: 'Aunque pertenece al orden de los carnívoros, la dieta del panda consiste en un 99% de bambú.'},
+                { name: 'Canguro', type: 'Herbívoro', emoji: '🦘', description: 'Son pastadores y se alimentan de una variedad de hierbas.'},
+                { name: 'Rinoceronte', type: 'Herbívoro', emoji: '🦏', description: 'Dependiendo de la especie, pueden pastar hierba o ramonear hojas y ramas.'},
+                { name: 'Gorila', type: 'Herbívoro', emoji: '🦍', description: 'Su dieta se basa en materia vegetal como tallos, hojas y frutas.'},
+                { name: 'Loro', type: 'Herbívoro', emoji: '🦜', description: 'Se alimentan principalmente de semillas, frutas, nueces y flores.'},
+                { name: 'Búfalo', type: 'Herbívoro', emoji: '🐃', description: 'Es un gran rumiante que se alimenta de hierbas y plantas acuáticas.'},
+                { name: 'Perezoso', type: 'Herbívoro', emoji: '🦥', description: 'Tienen una dieta de muy baja energía que consiste principalmente en hojas y brotes.'},
+                { name: 'Hipopótamo', type: 'Herbívoro', emoji: '🦛', description: 'Salen del agua por la noche para pastar grandes cantidades de hierba.'},
+                { name: 'Camello', type: 'Herbívoro', emoji: '🐪', description: 'Están adaptados a comer plantas duras y espinosas del desierto.'},
+                { name: 'Oveja', type: 'Herbívoro', emoji: '🐑', description: 'Son rumiantes que pastan hierba y otras plantas bajas.'},
+                { name: 'Cabra', type: 'Herbívoro', emoji: '🐐', description: 'Son ramoneadoras, prefiriendo comer hojas, ramas y arbustos.'},
+                { name: 'Mariposa', type: 'Herbívoro', emoji: '🦋', description: 'Las mariposas adultas se alimentan del néctar de las flores, mientras que sus orugas comen hojas.'},
+                { name: 'Abeja', type: 'Herbívoro', emoji: '🐝', description: 'Recolectan néctar y polen de las flores para alimentar a la colmena.'},
+                { name: 'Castor', type: 'Herbívoro', emoji: '🦫', description: 'Se alimenta de la corteza, hojas y ramas de los árboles que derriba.'},
+                { name: 'Llama', type: 'Herbívoro', emoji: '🦙', description: 'Son rumiantes que se alimentan de hierba y plantas de bajo crecimiento.'},
+                { name: 'Brontosaurio', type: 'Herbívoro', emoji: '🦕', description: 'Este dinosaurio de cuello largo era un herbívoro que comía grandes cantidades de plantas.'},
+                { name: 'Caracol', type: 'Herbívoro', emoji: '🐌', description: 'Se alimenta de una gran variedad de plantas, hojas, flores y frutas.'},
+                { name: 'Oruga', type: 'Herbívoro', emoji: '🐛', description: 'En su etapa de larva, es una voraz herbívora que se alimenta de hojas.'},
+                { name: 'Pavo Real', type: 'Herbívoro', emoji: '🦚', description: 'Su dieta es principalmente herbívora, basada en pétalos, semillas y plantas.'},
+                { name: 'Colibrí', type: 'Herbívoro', emoji: '🐤', description: 'Su dieta se basa casi exclusivamente en el néctar de las flores.'},
+                { name: 'Bisonte', type: 'Herbívoro', emoji: '🦬', description: 'Es un gran rumiante que se alimenta pastando en las praderas, principalmente de hierbas.'},
+                { name: 'Mamut', type: 'Herbívoro', emoji: '🦣', description: 'Era un herbívoro que se alimentaba de hierbas y arbustos de la tundra.'},
+                { name: 'Puercoespín', type: 'Herbívoro', emoji: '🦔', description: 'Se alimenta de cortezas, raíces, tallos y hojas. Usa sus púas para defenderse.'},
+                { name: 'Carnero', type: 'Herbívoro', emoji: '🐏', description: 'Como rumiante, se alimenta de pastos, hierbas y otras plantas de montaña.'},
+                { name: 'Tapir', type: 'Herbívoro', emoji: '🐽', description: 'Se alimenta de hojas, brotes, ramas y frutas que encuentra en los bosques.'},
+                
+                // Omnívoros (33)
+                { name: 'Oso', type: 'Omnívoro', emoji: '🐻', description: 'Su dieta es muy variada: come peces, bayas, raíces, insectos y pequeños mamíferos.'},
+                { name: 'Cerdo', type: 'Omnívoro', emoji: '🐖', description: 'En la naturaleza, su dieta incluye raíces, frutas, insectos y pequeños animales.'},
+                { name: 'Mapache', type: 'Omnívoro', emoji: '🦝', description: 'Extremadamente adaptable, come frutas, nueces, insectos, ranas y huevos.'},
+                { name: 'Gallina', type: 'Omnívoro', emoji: '🐔', description: 'Picotean semillas y plantas, pero también consumen insectos y gusanos.'},
+                { name: 'Chimpancé', type: 'Omnívoro', emoji: '🐵', description: 'Aunque su dieta es mayormente vegetariana, también cazan para comer carne.'},
+                { name: 'Ardilla', type: 'Omnívoro', emoji: '🐿️', description: 'Come nueces y semillas, pero no duda en consumir insectos y huevos.'},
+                { name: 'Humano', type: 'Omnívoro', emoji: '🧑', description: 'La especie humana consume una amplia variedad de productos vegetales y animales.'},
+                { name: 'Tejón', type: 'Omnívoro', emoji: '🦡', description: 'Su dieta incluye lombrices, insectos, pequeños mamíferos, frutas y raíces.'},
+                { name: 'Pavo', type: 'Omnívoro', emoji: '🦃', description: 'Buscan bellotas y semillas, pero también comen insectos y pequeños reptiles.'},
+                { name: 'Pato', type: 'Omnívoro', emoji: '🦆', description: 'Su dieta varía, pero incluye plantas acuáticas, semillas, insectos y caracoles.'},
+                { name: 'Orangután', type: 'Omnívoro', emoji: '🦧', description: 'Se alimenta principalmente de frutas y hojas, pero complementa su dieta con insectos.'},
+                { name: 'Cuervo', type: 'Omnívoro', emoji: '🐦‍⬛', description: 'Son aves muy inteligentes con una dieta variada: carroña, insectos, semillas y frutas.'},
+                { name: 'Rata', type: 'Omnívoro', emoji: '🐀', description: 'Son famosas por comer casi cualquier cosa, desde granos y frutas hasta basura.'},
+                { name: 'Tortuga', type: 'Omnívoro', emoji: '🐢', description: 'Dependiendo de la especie, pueden comer algas, medusas, cangrejos y peces.'},
+                { name: 'Pez Payaso', type: 'Omnívoro', emoji: '🐠', description: 'Se alimenta de pequeñas algas y de los pequeños crustáceos de su anémona.'},
+                { name: 'Mofeta', type: 'Omnívoro', emoji: '🦨', description: 'Su dieta incluye insectos, larvas, pequeños roedores, bayas y raíces.'},
+                { name: 'Jabalí', type: 'Omnívoro', emoji: '🐗', description: 'Utiliza su hocico para desenterrar raíces, y también come frutas e insectos.'},
+                { name: 'Cucaracha', type: 'Omnívoro', emoji: '🪳', description: 'Puede comer casi cualquier materia orgánica, incluyendo papel y restos de comida.'},
+                { name: 'Hormiga', type: 'Omnívoro', emoji: '🐜', description: 'Muchas son omnívoras y comen néctar, semillas, insectos y restos de animales.'},
+                { name: 'Cangrejo', type: 'Omnívoro', emoji: '🦀', description: 'Son carroñeros y depredadores que se alimentan de algas, moluscos y restos orgánicos.'},
+                { name: 'Flamenco', type: 'Omnívoro', emoji: '🦩', description: 'Filtra pequeños crustáceos y algas, consumiendo materia animal y vegetal.'},
+                { name: 'Escarabajo', type: 'Omnívoro', emoji: '🪲', description: 'Muchas especies son omnívoras y comen plantas, hongos y pequeños insectos.'},
+                { name: 'Perro', type: 'Omnívoro', emoji: '🐕', description: 'Domesticado como omnívoro, su dieta incluye carne, granos, frutas y vegetales.'},
+                { name: 'Paloma', type: 'Omnívoro', emoji: '🕊️', description: 'Se alimenta de semillas y frutas, pero también puede comer insectos.'},
+                { name: 'Camarón', type: 'Omnívoro', emoji: '🦐', description: 'Es un carroñero que se alimenta de algas, plancton y partículas en el agua.'},
+                { name: 'Ostra', type: 'Omnívoro', emoji: '🦪', description: 'Como animal filtrador, consume plancton y partículas orgánicas en el agua.'},
+                { name: 'Mosca', type: 'Omnívoro', emoji: '🪰', description: 'Puede alimentarse de casi cualquier materia orgánica en descomposición.'},
+                { name: 'Lombriz', type: 'Omnívoro', emoji: '🪱', description: 'Consume materia orgánica en descomposición que incluye restos vegetales y animales.'},
+                { name: 'Cisne', type: 'Omnívoro', emoji: '🦢', description: 'Su dieta principal son plantas acuáticas, pero ocasionalmente comen insectos y peces.'},
+                { name: 'Pájaro', type: 'Omnívoro', emoji: '🐦', description: 'Muchas especies de pájaros comen tanto semillas y frutas como insectos y gusanos.'},
+                { name: 'Emú', type: 'Omnívoro', emoji: '🦤', description: 'Se alimenta de una gran variedad de plantas e insectos, adaptándose a lo que está disponible.'},
+                { name: 'Hámster', type: 'Omnívoro', emoji: '🐹', description: 'Come semillas y granos, pero también puede comer insectos y pequeños invertebrados.'},
+                { name: 'Ratón', type: 'Omnívoro', emoji: '🐁', description: 'Es un omnívoro oportunista que come semillas, granos e insectos.'}
+            ];
+            
+            const cardBackImages = [
+                "https://i.supaimg.com/37ef4026-991a-42e1-afa0-b2db1a21237f.jpg",
+                "https://i.supaimg.com/8f73cdcd-f554-4823-914f-947c2cb6c062.jpg"
+            ];
+            const definitions = [
+                'Los <strong class="text-red-500">Carnívoros</strong> se alimentan principalmente de carne.',
+                'Los <strong class="text-blue-500">Herbívoros</strong> consumen plantas y vegetales.',
+                'Los <strong class="text-yellow-500">Omnívoros</strong> tienen una dieta variada de plantas y animales.'
+            ];
+            let definitionInterval;
+            let currentDefinitionIndex = 0;
+
+
+            const TOTAL_ANIMALS = animals.length;
+            let gameState = {};
+            let timer;
+            let timeLeft;
+
+            const allScreens = document.querySelectorAll('#app-container > div');
+            const startScreen = document.getElementById('start-screen');
+            const gameScreen = document.getElementById('game-screen');
+            const gradesScreen = document.getElementById('grades-screen');
+            const startButton = document.getElementById('start-button');
+            const continueButton = document.getElementById('continue-button');
+            const gradesButton = document.getElementById('grades-button');
+            const backToStartButton = document.getElementById('back-to-start-button');
+            const homeButton = document.getElementById('home-button');
+            const progressDisplay = document.getElementById('progress-display');
+            const timerDisplay = document.getElementById('timer-display');
+            const deck = document.getElementById('deck');
+            const deckImage = document.getElementById('deck-image');
+            const playedCardsStack = document.getElementById('played-cards-stack');
+            const currentCardContainer = document.getElementById('current-card-container');
+            const cardInnerContainer = document.querySelector('.card-container');
+            const cardBack = document.querySelector('.card-back');
+            const optionsContainer = document.getElementById('options-container');
+            const optionButtons = document.querySelectorAll('.option-button');
+            const gradesContent = document.getElementById('grades-content');
+            const definitionDisplay = document.getElementById('definition-display');
+            const modalOverlay = document.getElementById('modal-overlay');
+            const explanationModal = document.getElementById('explanation-modal');
+            const understoodButton = document.getElementById('understood-button');
+            const feedbackModal = document.getElementById('feedback-modal');
+            const feedbackImage = document.getElementById('feedback-image');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackText = document.getElementById('feedback-text');
+            const feedbackContinueButton = document.getElementById('feedback-continue-button');
+            
+            function getLocalData() {
+                const key = 'animalGameData';
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : { gameState: null, gameHistory: null };
+            }
+
+            function setLocalData(data) {
+                const key = 'animalGameData';
+                localStorage.setItem(key, JSON.stringify(data));
+            }
+
+            function showScreen(screenId) {
+                allScreens.forEach(screen => screen.classList.add('hidden'));
+                modalOverlay.classList.add('hidden');
+                document.getElementById(screenId).classList.remove('hidden');
+            }
+
+            function saveCurrentProgress() {
+                const data = getLocalData();
+                setLocalData({ ...data, gameState });
+            }
+            
+            function setupMainMenu() {
+                const data = getLocalData();
+                const gameInProgress = data.gameState && data.gameState.currentAnimalIndex < data.gameState.shuffledAnimals.length;
+                continueButton.classList.toggle('hidden', !gameInProgress);
+                
+                gradesButton.disabled = !gameInProgress && !data.gameHistory;
+                
+                showScreen('start-screen');
+            }
+
+            function rotateDefinitions() {
+                if (definitionDisplay) {
+                    definitionDisplay.innerHTML = definitions[currentDefinitionIndex];
+                    currentDefinitionIndex = (currentDefinitionIndex + 1) % definitions.length;
+                }
+            }
+
+            function startGame(isContinuation) {
+                const data = getLocalData();
+                if (isContinuation && data.gameState) {
+                    gameState = data.gameState;
+                } else {
+                    gameState = {
+                        currentAnimalIndex: 0,
+                        shuffledAnimals: [...animals].sort(() => Math.random() - 0.5),
+                        categoryCorrect: { 'Carnívoro': 0, 'Herbívoro': 0, 'Omnívoro': 0 }
+                    };
+                    const currentData = getLocalData();
+                    delete currentData.gameHistory;
+                    setLocalData(currentData);
+                }
+                showScreen('game-screen');
+                updateProgress();
+                resetCardState(true);
+                clearInterval(definitionInterval); 
+                rotateDefinitions(); 
+                definitionInterval = setInterval(rotateDefinitions, 8000);
+            }
+
+            function drawCard() {
+                if (gameState.currentAnimalIndex >= gameState.shuffledAnimals.length) {
+                    endGame(); return;
+                }
+                deck.classList.add('hidden');
+                playedCardsStack.classList.remove('hidden');
+                const animal = gameState.shuffledAnimals[gameState.currentAnimalIndex];
+                const nameClass = animal.name.length > 10 ? 'text-2xl' : 'text-3xl';
+                cardBack.innerHTML = `<div class="text-6xl sm:text-8xl mb-4">${animal.emoji}</div><p class="${nameClass} font-black text-gray-800 uppercase">${animal.name}</p>`;
+                currentCardContainer.classList.remove('hidden');
+                setTimeout(() => cardInnerContainer.classList.add('is-flipped'), 100);
+                setTimeout(() => {
+                    optionsContainer.classList.remove('opacity-0');
+                    optionButtons.forEach(btn => btn.disabled = false);
+                    startTimer();
+                }, 600);
+            }
+            
+            function startTimer() {
+                timeLeft = 10;
+                timerDisplay.textContent = timeLeft;
+                timerDisplay.classList.remove('timer-warning', 'text-red-600');
+                timer = setInterval(() => {
+                    timeLeft--;
+                    timerDisplay.textContent = timeLeft;
+                    if(timeLeft <= 3) timerDisplay.classList.add('timer-warning', 'text-red-600');
+                    if (timeLeft === 0) {
+                        clearInterval(timer);
+                        checkAnswer(null); // Timeout
+                    }
+                }, 1000);
+            }
+
+            function checkAnswer(selectedType) {
+                clearInterval(timer);
+                optionButtons.forEach(btn => btn.disabled = true);
+                
+                if (selectedType === null) { // Timeout logic
+                    const timedOutAnimal = gameState.shuffledAnimals.splice(gameState.currentAnimalIndex, 1)[0];
+                    gameState.shuffledAnimals.push(timedOutAnimal);
+                    saveCurrentProgress();
+                    
+                    deck.classList.add('animate-shake');
+                    setTimeout(() => {
+                        deck.classList.remove('animate-shake');
+                        resetCardState(false);
+                    }, 820);
+                    return;
+                }
+                
+                const animal = gameState.shuffledAnimals[gameState.currentAnimalIndex];
+                const isCorrect = selectedType === animal.type;
+
+                if (isCorrect) {
+                    gameState.categoryCorrect[animal.type] = (gameState.categoryCorrect[animal.type] || 0) + 1;
+                    document.body.style.boxShadow = 'inset 0 0 0 15px #16a34a';
+                    setTimeout(() => { document.body.style.boxShadow = 'none'; }, 400);
+                    setTimeout(continueGame, 500);
+                } else {
+                    showFeedbackModal();
+                }
+            }
+            
+            function showFeedbackModal() {
+                const animal = gameState.shuffledAnimals[gameState.currentAnimalIndex];
+                feedbackImage.innerHTML = animal.emoji;
+                feedbackTitle.textContent = `Incorrecto. Era ${animal.type}.`;
+                feedbackTitle.className = `text-3xl font-black mb-2 text-red-600`;
+                feedbackText.textContent = animal.description;
+                
+                modalOverlay.classList.remove('hidden');
+                explanationModal.classList.add('hidden');
+                feedbackModal.classList.remove('hidden');
+            }
+
+            function continueGame() {
+                 modalOverlay.classList.add('hidden');
+                 feedbackModal.classList.add('hidden');
+                 
+                 gameState.currentAnimalIndex++;
+                 saveCurrentProgress();
+
+                 updateProgress();
+                 resetCardState(false);
+            }
+            
+            function resetCardState(isFirstCard) {
+                 cardInnerContainer.classList.remove('is-flipped');
+                 optionsContainer.classList.add('opacity-0');
+
+                 const nextImageIndex = gameState.currentAnimalIndex % cardBackImages.length;
+                 deckImage.src = cardBackImages[nextImageIndex];
+
+                 setTimeout(() => {
+                    currentCardContainer.classList.add('hidden');
+                    if(!isFirstCard) playedCardsStack.classList.add('hidden');
+                    
+                    if (gameState.currentAnimalIndex >= gameState.shuffledAnimals.length) endGame();
+                    else {
+                        if (isFirstCard) drawCard();
+                        else deck.classList.remove('hidden');
+                    }
+                 }, 400);
+            }
+            
+            function updateProgress() {
+                const progress = gameState.currentAnimalIndex + 1;
+                const total = gameState.shuffledAnimals.length;
+                progressDisplay.textContent = `${progress > total ? total : progress}/${total}`;
+            }
+
+            function endGame() {
+                clearInterval(definitionInterval); 
+                const { categoryCorrect } = gameState;
+                const totalCorrect = Object.values(categoryCorrect).reduce((a, b) => a + b, 0);
+                const getAccuracy = (correct, total) => total > 0 ? Math.round((correct / total) * 100) : 0;
+                
+                const carnivoreTotal = animals.filter(a => a.type === 'Carnívoro').length;
+                const herbivoreTotal = animals.filter(a => a.type === 'Herbívoro').length;
+                const omnivoreTotal = animals.filter(a => a.type === 'Omnívoro').length;
+
+                const gameHistory = {
+                    general: getAccuracy(totalCorrect, TOTAL_ANIMALS),
+                    carnivore: getAccuracy(categoryCorrect['Carnívoro'] || 0, carnivoreTotal),
+                    herbivore: getAccuracy(categoryCorrect['Herbívoro'] || 0, herbivoreTotal),
+                    omnivore: getAccuracy(categoryCorrect['Omnívoro'] || 0, omnivoreTotal)
+                };
+                setLocalData({ gameState: null, gameHistory });
+                showGrades();
+            }
+
+            function showGrades() {
+                const { gameState, gameHistory } = getLocalData();
+                document.querySelector('#grades-screen h2').textContent = `Reporte de Calificación`;
+
+                let statsToShow = null;
+                let isFinal = false;
+                let progressText = '';
+
+                if (gameHistory) {
+                    statsToShow = gameHistory;
+                    isFinal = true;
+                } else if (gameState && gameState.currentAnimalIndex > 0) {
+                    const { categoryCorrect, shuffledAnimals, currentAnimalIndex } = gameState;
+                    const totalCorrect = Object.values(categoryCorrect).reduce((a, b) => a + b, 0);
+                    
+                    const animalsAnswered = shuffledAnimals.slice(0, currentAnimalIndex);
+                    const totalAnswered = animalsAnswered.length;
+
+                    const carnivoresAnswered = animalsAnswered.filter(a => a.type === 'Carnívoro').length;
+                    const herbivoresAnswered = animalsAnswered.filter(a => a.type === 'Herbívoro').length;
+                    const omnivoresAnswered = animalsAnswered.filter(a => a.type === 'Omnívoro').length;
+
+                    const getAccuracy = (correct, total) => total > 0 ? Math.round((correct / total) * 100) : 0;
+
+                    statsToShow = {
+                        general: getAccuracy(totalCorrect, totalAnswered),
+                        carnivore: getAccuracy(categoryCorrect['Carnívoro'] || 0, carnivoresAnswered),
+                        herbivore: getAccuracy(categoryCorrect['Herbívoro'] || 0, herbivoresAnswered),
+                        omnivore: getAccuracy(categoryCorrect['Omnívoro'] || 0, omnivoresAnswered)
+                    };
+                    progressText = ` (${totalAnswered}/${TOTAL_ANIMALS} respondidas)`;
+                }
+
+                if (!statsToShow) {
+                    gradesContent.innerHTML = `<div class="text-center py-8 px-4 col-span-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                        <h3 class="mt-4 text-xl font-bold text-gray-800">No hay datos para mostrar</h3>
+                        <p class="mt-2 text-gray-600">Completa tu primera partida para ver tus calificaciones aquí.</p>
+                    </div>`;
+                } else {
+                     const renderScore = (label, score) => {
+                        const pass = score >= 65;
+                        const color = pass ? 'green' : 'red';
+                        const status = pass ? 'APROBADO' : 'MEJORABLE';
+                        return `<div class="bg-gray-100 p-4 rounded-lg"><div class="flex justify-between items-center"><span class="font-bold text-gray-700 text-lg">${label}</span><span class="font-black text-2xl text-${color}-600">${score}%</span></div><div class="w-full bg-gray-300 rounded-full h-4 mt-2"><div class="bg-${color}-500 h-4 rounded-full" style="width: ${score}%"></div></div><p class="text-right font-bold text-sm mt-1 text-${color}-600">${status}</p></div>`;
+                    };
+                    const title = isFinal ? 'Calificación General' : 'Progreso General';
+                    gradesContent.innerHTML = `
+                        ${renderScore(title + progressText, statsToShow.general)}
+                        ${renderScore('Precisión con Carnívoros', statsToShow.carnivore)}
+                        ${renderScore('Precisión con Herbívoros', statsToShow.herbivore)}
+                        ${renderScore('Precisión con Omnívoros', statsToShow.omnivore)}
+                    `;
+                }
+                showScreen('grades-screen');
+            }
+            
+            function init() {
+                explanationModal.classList.remove('hidden');
+                modalOverlay.classList.remove('hidden');
+                feedbackModal.classList.add('hidden');
+            }
+
+            understoodButton.addEventListener('click', () => {
+                explanationModal.classList.add('hidden');
+                modalOverlay.classList.add('hidden');
+                setupMainMenu();
+            });
+            
+            startButton.addEventListener('click', () => startGame(false));
+            continueButton.addEventListener('click', () => startGame(true));
+            gradesButton.addEventListener('click', showGrades);
+            backToStartButton.addEventListener('click', () => setupMainMenu());
+            homeButton.addEventListener('click', () => {
+                clearInterval(timer);
+                clearInterval(definitionInterval); 
+                saveCurrentProgress();
+                setupMainMenu();
+            });
+            deck.addEventListener('click', drawCard);
+            optionButtons.forEach(button => button.addEventListener('click', () => checkAnswer(button.dataset.type)));
+            feedbackContinueButton.addEventListener('click', continueGame);
+
+            init();
+        });
+    </script>
+</body>
+</html>
+
