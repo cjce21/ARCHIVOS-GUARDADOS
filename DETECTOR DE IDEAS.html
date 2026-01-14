@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LabReport: Detective de Ideas Principales - Ultimate Edition</title>
+    
+    <!-- Favicon: Lupa Vectorial Profesional -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fbbf24' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel (para JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { overscroll-behavior-y: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        
+        /* Animaciones */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+        
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+        .animate-slideInRight { animation: slideInRight 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.5); opacity: 0; } }
+        .animate-floatUp { animation: floatUp 0.8s ease-out forwards; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+        .animate-shake { animation: shake 0.4s ease-in-out; }
+
+        @keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(234, 179, 8, 0); } 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); } }
+        .animate-pulse-gold { animation: pulse-gold 1.5s infinite; }
+        
+        @keyframes heartbeat { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+        .animate-heartbeat { animation: heartbeat 1s infinite; }
+
+        @keyframes fire { 0% { text-shadow: 0 0 20px #fef08a, 0 0 40px #facc15, 0 0 60px #ef4444; } 50% { text-shadow: 0 0 10px #fef08a, 0 0 20px #facc15, 0 0 30px #ef4444; } 100% { text-shadow: 0 0 20px #fef08a, 0 0 40px #facc15, 0 0 60px #ef4444; } }
+        .animate-fire { animation: fire 2s infinite; }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Estilos de Selección de Texto */
+        .highlight-hover:hover {
+            background-color: rgba(251, 191, 36, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .highlight-selected {
+            background-color: rgba(251, 191, 36, 0.6) !important;
+            border-bottom: 3px solid #fbbf24;
+            transform: scale(1.005);
+            display: inline-block;
+            box-shadow: 0 2px 10px rgba(251, 191, 36, 0.2);
+        }
+        .highlight-correct {
+            background-color: rgba(34, 197, 94, 0.3) !important;
+            border-bottom: 3px solid #22c55e;
+            color: #dcfce7;
+        }
+        .highlight-wrong {
+            background-color: rgba(244, 63, 94, 0.3) !important;
+            border-bottom: 3px solid #f43f5e;
+            text-decoration: line-through;
+            color: #ffe4e6;
+            opacity: 0.7;
+        }
+        .highlight-missed {
+            border: 2px dashed #22c55e;
+            background-color: rgba(34, 197, 94, 0.1);
+        }
+        
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-panel-danger {
+            background: rgba(88, 28, 40, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+        
+        .on-fire-border {
+            border: 2px solid #facc15;
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen overflow-hidden selection:bg-rose-500 selection:text-white">
+    <div id="root" class="h-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- BASE DE DATOS DE TEXTOS (50 NIVELES) ---
+        const rawData = [
+            // --- GRUPO 1: MEDIO AMBIENTE Y ENERGÍA ---
+            {
+                topic: "Cambio Climático",
+                segments: [
+                    { text: "El cambio climático es fundamentalmente una alteración del balance energético global causada por la actividad humana. ", isMain: true },
+                    { text: "A menudo las discusiones se pierden en anécdotas sobre si llovió mucho ayer, ignorando las tendencias estadísticas a largo plazo. ", isMain: false },
+                    { text: "Por ejemplo, el dióxido de carbono ha superado las 400 partes por millón recientemente en el observatorio de Mauna Loa. ", isMain: false },
+                    { text: "Esto provoca un efecto invernadero intensificado que retiene calor en la atmósfera. ", isMain: true }
+                ],
+                explanation: "Debes seleccionar tanto la definición (alteración del balance) como su mecanismo directo (efecto invernadero)."
+            },
+            {
+                topic: "Energía Nuclear",
+                segments: [
+                    { text: "Chernóbil y Fukushima son nombres que evocan miedo instantáneo debido a los desastres históricos. ", isMain: false },
+                    { text: "Sin embargo, si analizamos los datos, la energía nuclear es una de las alternativas más eficientes y limpias para sostener la demanda base. ", isMain: true },
+                    { text: "El uranio es un elemento muy denso y los residuos son un problema logístico, pero gestionable. ", isMain: false }
+                ],
+                explanation: "La tesis central es la defensa de la eficiencia nuclear frente al miedo popular."
+            },
+            {
+                topic: "Océanos y Plástico",
+                segments: [
+                    { text: "Hemos visto fotos desgarradoras de tortugas atrapadas en anillas de latas. ", isMain: false },
+                    { text: "Cada año se vierten millones de toneladas al mar. ", isMain: false },
+                    { text: "Más allá de la estética, la contaminación plástica es una crisis sistémica que amenaza la seguridad alimentaria global al introducir microplásticos en la cadena trófica. ", isMain: true }
+                ],
+                explanation: "El texto eleva el problema de 'basura visible' a 'crisis alimentaria'."
+            },
+            {
+                topic: "Energías Renovables",
+                segments: [
+                    { text: "Los paneles solares son cada vez más eficientes. ", isMain: false },
+                    { text: "Sin embargo, la transición a renovables es imperativa no solo por ecología, sino por el agotamiento físico inminente de los combustibles fósiles. ", isMain: true },
+                    { text: "El petróleo tardó millones de años en formarse y lo estamos quemando rápidamente. ", isMain: false }
+                ],
+                explanation: "La justificación principal es el agotamiento de recursos, no solo la eficiencia."
+            },
+            {
+                topic: "Agricultura Sostenible",
+                segments: [
+                    { text: "El uso masivo de fertilizantes químicos ha degradado la tierra fértil. ", isMain: false },
+                    { text: "La agricultura regenerativa propone sanar el suelo mediante rotación de cultivos para restaurar su capacidad de capturar carbono. ", isMain: true },
+                    { text: "Un suelo sano produce más comida y actúa como esponja para el CO2. ", isMain: false }
+                ],
+                explanation: "La propuesta de solución (regenerativa) es el núcleo del texto."
+            },
+            // --- GRUPO 2: TECNOLOGÍA ---
+            {
+                topic: "Inteligencia Artificial",
+                segments: [
+                    { text: "Las máquinas calculan rápido y limpian casas con eficacia. ", isMain: false },
+                    { text: "Pero el verdadero reto de la IA no es la potencia bruta, sino dotar a las máquinas de sentido común y contexto. ", isMain: true },
+                    { text: "Una supercomputadora puede ganar al ajedrez, pero no sabe qué hacer si hay un incendio. ", isMain: false },
+                    { text: "Esa falta de adaptabilidad general es su mayor limitación actual. ", isMain: true }
+                ],
+                explanation: "La idea central es la limitación de la IA (falta de contexto y adaptabilidad)."
+            },
+            {
+                topic: "Big Data",
+                segments: [
+                    { text: "El Big Data ha cambiado el paradigma empresarial: ya no se decide por intuición, sino por predicción basada en datos masivos. ", isMain: true },
+                    { text: "Cada vez que damos 'like' generamos información que se vende a terceros. ", isMain: false },
+                    { text: "Google tiene servidores gigantescos llenos de información sobre nuestros hábitos. ", isMain: false }
+                ],
+                explanation: "Afirmación inicial sobre el cambio de modelo de decisión."
+            },
+            {
+                topic: "Automatización Laboral",
+                segments: [
+                    { text: "Los cajeros automáticos reemplazaron a los empleados bancarios. ", isMain: false },
+                    { text: "Un robot no pide vacaciones y trabaja 24 horas. ", isMain: false },
+                    { text: "Por todo esto, la automatización plantea el riesgo inédito de disociar permanentemente la creación de riqueza de la necesidad de empleo humano. ", isMain: true }
+                ],
+                explanation: "Conclusión lógica derivada de los ejemplos: disociación riqueza/empleo."
+            },
+            {
+                topic: "Ciberseguridad",
+                segments: [
+                    { text: "Ya no se trata solo de proteger tu contraseña de Facebook. ", isMain: false },
+                    { text: "Hoy, la ciberseguridad es un pilar estratégico de la defensa nacional capaz de paralizar infraestructuras críticas. ", isMain: true },
+                    { text: "Un ataque bien coordinado puede hacer más daño que una bomba física. ", isMain: false }
+                ],
+                explanation: "Evolución del concepto: de personal a seguridad nacional."
+            },
+            {
+                topic: "Blockchain",
+                segments: [
+                    { text: "Blockchain crea confianza digital inmutable mediante matemáticas, sin necesitar una autoridad central. ", isMain: true },
+                    { text: "Es como un libro de contabilidad gigante que todos tienen copiado. ", isMain: false },
+                    { text: "Esta tecnología sustenta a las criptomonedas y elimina intermediarios. ", isMain: true }
+                ],
+                explanation: "Debes seleccionar la definición y su implicación principal (eliminar intermediarios)."
+            },
+            // --- GRUPO 3: CIENCIA Y ESPACIO ---
+            {
+                topic: "Agujeros Negros",
+                segments: [
+                    { text: "Un agujero negro es una región donde la gravedad es tan fuerte que nada, ni la luz, puede escapar. ", isMain: true },
+                    { text: "En 2019 se consiguió una fotografía histórica gracias a radiotelescopios. ", isMain: false },
+                    { text: "Stephen Hawking teorizó que podrían evaporarse con el tiempo. ", isMain: false }
+                ],
+                explanation: "La definición científica es lo primordial."
+            },
+            {
+                topic: "Materia Oscura",
+                segments: [
+                    { text: "Vemos estrellas brillantes y galaxias hermosas. ", isMain: false },
+                    { text: "Sin embargo, la velocidad de rotación galáctica es imposible de explicar solo con la masa visible. ", isMain: false },
+                    { text: "Esto sugiere que la mayor parte del universo está compuesta por materia oscura, una sustancia invisible que solo detectamos por su gravedad. ", isMain: true }
+                ],
+                explanation: "Conclusión inductiva al final del texto."
+            },
+            {
+                topic: "Exploración Espacial",
+                segments: [
+                    { text: "Hemos pisado la Luna y enviado robots a Marte. ", isMain: false },
+                    { text: "Más allá de la curiosidad, la exploración espacial es un seguro de vida para la supervivencia a largo plazo de la especie humana. ", isMain: true },
+                    { text: "Quedarnos en un solo planeta nos hace vulnerables a la extinción. ", isMain: false }
+                ],
+                explanation: "Justificación existencial (seguro de vida) como idea central."
+            },
+            {
+                topic: "Satélites",
+                segments: [
+                    { text: "Los satélites de observación son herramientas vitales para monitorizar el cambio climático y gestionar recursos globales. ", isMain: true },
+                    { text: "Gracias a ellos podemos predecir huracanes y medir la deforestación en tiempo real. ", isMain: false },
+                    { text: "Hay miles orbitando sobre nuestras cabezas. ", isMain: false }
+                ],
+                explanation: "Afirmación de importancia crítica al inicio."
+            },
+            {
+                topic: "Colonización Lunar",
+                segments: [
+                    { text: "La Luna es gris y no tiene aire. ", isMain: false },
+                    { text: "Sin embargo, establecer una base allí es el paso logístico imprescindible para probar la tecnología antes de viajar a Marte. ", isMain: true },
+                    { text: "Sería un suicidio intentar un viaje largo sin pruebas previas. ", isMain: false }
+                ],
+                explanation: "El rol estratégico (banco de pruebas) es lo central."
+            },
+            // --- GRUPO 4: BIOLOGÍA ---
+            {
+                topic: "Edición Genética",
+                segments: [
+                    { text: "CRISPR permite cortar ADN de forma barata. ", isMain: false },
+                    { text: "Pero la capacidad técnica ha superado a la reflexión moral. ", isMain: false },
+                    { text: "El verdadero conflicto es el dilema ético sobre modificar la línea germinal humana irreversiblemente. ", isMain: true }
+                ],
+                explanation: "El problema ético central es la idea principal."
+            },
+            {
+                topic: "Neuroplasticidad",
+                segments: [
+                    { text: "Antiguamente se creía que el cerebro adulto era estático. ", isMain: false },
+                    { text: "Hoy sabemos que el cerebro se reorganiza físicamente en respuesta al aprendizaje continuo, fenómeno llamado neuroplasticidad. ", isMain: true },
+                    { text: "Esto se ha comprobado en estudios con taxistas londinenses. ", isMain: false }
+                ],
+                explanation: "Corrección de una creencia antigua con un nuevo concepto científico."
+            },
+            {
+                topic: "El Sueño",
+                segments: [
+                    { text: "Dormir no es un 'apagado' pasivo, sino un proceso activo vital para consolidar memoria y limpiar toxinas. ", isMain: true },
+                    { text: "El sistema glinfático barre residuos mientras descansamos. ", isMain: false },
+                    { text: "La falta de sueño afecta el humor. ", isMain: false }
+                ],
+                explanation: "Redefinición del concepto de sueño."
+            },
+            {
+                topic: "El Estrés",
+                segments: [
+                    { text: "El corazón se acelera ante el peligro para huir. ", isMain: false },
+                    { text: "Esta respuesta evolutiva se vuelve dañina hoy día. ", isMain: false },
+                    { text: "El problema actual es la activación crónica del estrés, que es el principal factor de riesgo cardiovascular. ", isMain: true }
+                ],
+                explanation: "La cronicidad del estrés como problema de salud es la conclusión."
+            },
+            {
+                topic: "Evolución",
+                segments: [
+                    { text: "Darwin observó picos de pájaros en las Galápagos. ", isMain: false },
+                    { text: "La selección natural dicta que los organismos mejor adaptados sobreviven y reproducen sus genes. ", isMain: true },
+                    { text: "No sobrevive el más fuerte, sino el que mejor responde al cambio. ", isMain: true }
+                ],
+                explanation: "Debes marcar la definición y la aclaración fundamental sobre la adaptación."
+            },
+            // --- GRUPO 5: HISTORIA Y HUMANIDADES ---
+            {
+                topic: "Revolución Industrial",
+                segments: [
+                    { text: "La Revolución Industrial fue una transformación estructural profunda de sociedad agraria a urbana. ", isMain: true },
+                    { text: "No se trató solo de máquinas de vapor y humo en Manchester. ", isMain: false },
+                    { text: "Cambió radicalmente cómo vivía y trabajaba la gente común. ", isMain: true }
+                ],
+                explanation: "La transformación estructural y social es el eje."
+            },
+            {
+                topic: "Imperio Romano",
+                segments: [
+                    { text: "Sus acueductos siguen en pie y el Coliseo es famoso. ", isMain: false },
+                    { text: "Pero el legado más importante es su sistema jurídico que fundó el derecho occidental. ", isMain: true },
+                    { text: "Leyes sobre propiedad y contratos actuales vienen de Roma. ", isMain: false }
+                ],
+                explanation: "Prioridad del legado inmaterial (derecho) sobre el material."
+            },
+            {
+                topic: "Grecia Antigua",
+                segments: [
+                    { text: "Grecia es la cuna de Occidente porque sustituyó el mito por el logos, iniciando el pensamiento racional. ", isMain: true },
+                    { text: "Antes, los rayos eran culpa de Zeus. ", isMain: false },
+                    { text: "Filósofos como Sócrates cambiaron esa visión. ", isMain: false }
+                ],
+                explanation: "El paso del mito al logos es la tesis cultural."
+            },
+            {
+                topic: "Literatura",
+                segments: [
+                    { text: "Leer nos entretiene y nos deja vivir otras vidas. ", isMain: false },
+                    { text: "Sin embargo, la función profunda de la literatura es actuar como espejo crítico de los valores de su sociedad. ", isMain: true },
+                    { text: "Dickens denunciaba la miseria industrial en sus novelas. ", isMain: false }
+                ],
+                explanation: "Función crítica vs entretenimiento."
+            },
+            {
+                topic: "Arte Moderno",
+                segments: [
+                    { text: "A veces vemos un cuadro abstracto y pensamos que es fácil de hacer. ", isMain: false },
+                    { text: "El arte moderno rompió con la imitación de la realidad para explorar la expresión subjetiva y conceptual. ", isMain: true },
+                    { text: "La fotografía ya cumplía la función de retratar el mundo tal cual es. ", isMain: false }
+                ],
+                explanation: "Ruptura con la mímesis (imitación) como propósito."
+            },
+            // --- GRUPO 6: ECONOMÍA ---
+            {
+                topic: "Globalización",
+                segments: [
+                    { text: "Podemos comer sushi en Madrid y usar teléfonos chinos. ", isMain: false },
+                    { text: "La globalización es el proceso de integración de mercados locales en un único mercado mundial. ", isMain: true },
+                    { text: "Aunque reduce costos, genera críticas por la desigualdad y pérdida de identidad. ", isMain: false }
+                ],
+                explanation: "Definición del proceso económico central."
+            },
+            {
+                topic: "Inflación",
+                segments: [
+                    { text: "La inflación es el aumento generalizado de precios por desequilibrio entre oferta y demanda monetaria. ", isMain: true },
+                    { text: "No es solo que el pan cueste más, sino la pérdida del poder adquisitivo de la moneda. ", isMain: true },
+                    { text: "Los bancos centrales suben tasas para controlarla. ", isMain: false }
+                ],
+                explanation: "Definición técnica y su consecuencia directa (poder adquisitivo)."
+            },
+            {
+                topic: "Criptomonedas",
+                segments: [
+                    { text: "El precio del Bitcoin es muy volátil. ", isMain: false },
+                    { text: "Mucha gente especula con monedas meme. ", isMain: false },
+                    { text: "La propuesta de valor real es la descentralización financiera mediante blockchain, eliminando intermediarios. ", isMain: true }
+                ],
+                explanation: "Propuesta tecnológica fundamental vs especulación."
+            },
+            {
+                topic: "Economía Circular",
+                segments: [
+                    { text: "La economía circular busca eliminar el concepto de 'residuo' rediseñando el sistema. ", isMain: true },
+                    { text: "Actualmente operamos en una economía lineal de 'usar y tirar'. ", isMain: false },
+                    { text: "Reciclar en casa es bueno, pero insuficiente si el diseño industrial no cambia. ", isMain: false }
+                ],
+                explanation: "Cambio de paradigma sistémico."
+            },
+            // --- GRUPO 7: NUEVOS TEMAS (COMPLETANDO A 50) ---
+            {
+                topic: "Microbiota Intestinal",
+                segments: [
+                    { text: "Tenemos millones de bacterias en el estómago. ", isMain: false },
+                    { text: "La microbiota intestinal no solo ayuda a la digestión, sino que actúa como un 'segundo cerebro' regulando el sistema inmune y el estado de ánimo. ", isMain: true },
+                    { text: "Comer yogur y fibra ayuda a mantenerlas sanas. ", isMain: false },
+                    { text: "Su desequilibrio se relaciona con la depresión. ", isMain: false }
+                ],
+                explanation: "La función reguladora sistémica (cerebro/inmune) es la clave."
+            },
+            {
+                topic: "Estoicismo",
+                segments: [
+                    { text: "Marco Aurelio fue un emperador romano muy famoso. ", isMain: false },
+                    { text: "El estoicismo es una filosofía práctica que enseña a diferenciar entre lo que podemos controlar y lo que no, para alcanzar la ataraxia o paz mental. ", isMain: true },
+                    { text: "No se trata de no tener emociones, sino de no ser esclavo de ellas. ", isMain: true },
+                    { text: "Hoy en día está muy de moda en Silicon Valley. ", isMain: false }
+                ],
+                explanation: "Definición de la dicotomía del control y su objetivo (paz mental)."
+            },
+            {
+                topic: "Impresión 3D",
+                segments: [
+                    { text: "Podemos imprimir juguetes de plástico en casa. ", isMain: false },
+                    { text: "La impresión 3D promete democratizar la manufactura, permitiendo la producción local descentralizada y personalizada bajo demanda. ", isMain: true },
+                    { text: "Esto reduciría la necesidad de grandes barcos de carga cruzando el océano. ", isMain: false },
+                    { text: "Ya se están imprimiendo casas y órganos humanos. ", isMain: false }
+                ],
+                explanation: "Cambio de modelo productivo (descentralización/personalización)."
+            },
+            {
+                topic: "Realidad Virtual",
+                segments: [
+                    { text: "Los videojuegos de VR son muy inmersivos y divertidos. ", isMain: false },
+                    { text: "Más allá del entretenimiento, la Realidad Virtual tiene el potencial de ser una 'máquina de empatía' al permitirnos experimentar la vida desde la perspectiva de otro. ", isMain: true },
+                    { text: "Facebook cambió su nombre a Meta apostando por esto. ", isMain: false },
+                    { text: "El mareo por movimiento es un problema técnico a resolver. ", isMain: false }
+                ],
+                explanation: "Potencial transformador (máquina de empatía) vs uso lúdico."
+            },
+            {
+                topic: "Urbanismo Sostenible",
+                segments: [
+                    { text: "Las ciudades están llenas de coches y ruido. ", isMain: false },
+                    { text: "El concepto de 'ciudad de 15 minutos' propone rediseñar los barrios para que todas las necesidades básicas estén a corta distancia caminando o en bici. ", isMain: true },
+                    { text: "Esto reduce drásticamente la dependencia del automóvil y las emisiones. ", isMain: true },
+                    { text: "París y Barcelona están implementando estos modelos. ", isMain: false }
+                ],
+                explanation: "Propuesta de rediseño urbano y su objetivo principal."
+            },
+            {
+                topic: "Computación Cuántica",
+                segments: [
+                    { text: "Los ordenadores clásicos usan bits que son ceros o unos. ", isMain: false },
+                    { text: "La computación cuanta utiliza qubits que pueden estar en ambos estados a la vez gracias a la superposición. ", isMain: false },
+                    { text: "Esto permitirá resolver problemas complejos, como el plegamiento de proteínas, que tardarían millones de años en computadoras actuales. ", isMain: true }
+                ],
+                explanation: "El potencial de resolución de problemas inabordables es la idea principal del impacto."
+            },
+            {
+                topic: "Grafeno",
+                segments: [
+                    { text: "Es una capa de carbono de un solo átomo de espesor. ", isMain: false },
+                    { text: "El grafeno es revolucionario porque combina propiedades contradictorias: es más duro que el diamante pero flexible, y conduce electricidad mejor que el cobre. ", isMain: true },
+                    { text: "Sus descubridores ganaron el Nobel usando cinta adhesiva. ", isMain: false }
+                ],
+                explanation: "La combinación única de propiedades es lo que lo define como revolucionario."
+            },
+            {
+                topic: "Internet de las Cosas (IoT)",
+                segments: [
+                    { text: "Tu nevera podría hacer la compra sola. ", isMain: false },
+                    { text: "El IoT se refiere a la interconexión digital de objetos cotidianos con internet, permitiendo la recolección de datos y automatización del entorno físico. ", isMain: true },
+                    { text: "Esto genera preocupaciones sobre la vigilancia masiva. ", isMain: false }
+                ],
+                explanation: "Definición de la red de objetos y su función (automatización/datos)."
+            },
+            {
+                topic: "Fusión Nuclear",
+                segments: [
+                    { text: "Es lo que hace brillar al Sol. ", isMain: false },
+                    { text: "A diferencia de la fisión actual, la fusión nuclear promete una fuente de energía casi ilimitada y limpia al unir átomos en lugar de romperlos, sin residuos de larga duración. ", isMain: true },
+                    { text: "Todavía cuesta más energía iniciarla que la que produce. ", isMain: false }
+                ],
+                explanation: "Promesa de energía limpia/ilimitada por unión atómica."
+            },
+            {
+                topic: "Metabolismo Basal",
+                segments: [
+                    { text: "Hacer ejercicio quema calorías. ", isMain: false },
+                    { text: "Sin embargo, el metabolismo basal consume la mayor parte de nuestra energía diaria solo para mantener funciones vitales como respirar y latir. ", isMain: true },
+                    { text: "Es diferente en cada persona dependiendo de la edad y el músculo. ", isMain: false }
+                ],
+                explanation: "Concepto de consumo energético base vs actividad física."
+            },
+            {
+                topic: "Teoría del Caos",
+                segments: [
+                    { text: "El efecto mariposa dice que un aleteo en Brasil provoca un tornado en Texas. ", isMain: false },
+                    { text: "La teoría del caos estudia sistemas dinámicos muy sensibles a las condiciones iniciales, donde pequeños cambios derivan en consecuencias impredecibles a largo plazo. ", isMain: true },
+                    { text: "Se usa para intentar predecir el clima o la bolsa. ", isMain: false }
+                ],
+                explanation: "Definición de sensibilidad a condiciones iniciales e imprevisibilidad."
+            },
+            {
+                topic: "Antibióticos",
+                segments: [
+                    { text: "Fleming descubrió la penicilina por accidente. ", isMain: false },
+                    { text: "Los antibióticos combaten infecciones bacterianas, pero su abuso está generando una crisis de resistencia que podría dejarnos indefensos ante enfermedades comunes. ", isMain: true },
+                    { text: "No sirven para curar la gripe porque es un virus. ", isMain: false }
+                ],
+                explanation: "Función y crisis actual (resistencia) como eje central."
+            },
+            {
+                topic: "Minimalismo",
+                segments: [
+                    { text: "Tener paredes blancas y pocos muebles está de moda. ", isMain: false },
+                    { text: "El minimalismo no es solo estética, sino una filosofía que busca eliminar lo superfluo para enfocarse en lo que verdaderamente aporta valor y felicidad. ", isMain: true },
+                    { text: "Marie Kondo enseña a tirar lo que no te da alegría. ", isMain: false }
+                ],
+                explanation: "Filosofía de valor vs estética."
+            },
+            {
+                topic: "Disonancia Cognitiva",
+                segments: [
+                    { text: "A veces sabemos que fumar es malo pero lo hacemos igual. ", isMain: false },
+                    { text: "La disonancia cognitiva es el malestar psicológico que sentimos al sostener dos creencias contradictorias, lo que nos impulsa a autoengañarnos para recuperar la coherencia. ", isMain: true },
+                    { text: "Fue estudiada por Leon Festinger en sectas apocalípticas. ", isMain: false }
+                ],
+                explanation: "Definición del mecanismo psicológico de malestar y resolución."
+            },
+            {
+                topic: "Renta Básica Universal",
+                segments: [
+                    { text: "Es dar dinero gratis a la gente. ", isMain: false },
+                    { text: "La Renta Básica propone un pago periódico a todos los ciudadanos sin condiciones, como medida para garantizar la subsistencia ante la automatización del empleo. ", isMain: true },
+                    { text: "Finlandia hizo un experimento con desempleados. ", isMain: false },
+                    { text: "Los críticos dicen que fomentaría la vagancia. ", isMain: false }
+                ],
+                explanation: "Definición de la medida y su justificación (automatización)."
+            },
+            {
+                topic: "Obsolescencia Programada",
+                segments: [
+                    { text: "Las bombillas antiguas duraban 100 años. ", isMain: false },
+                    { text: "Tu móvil empieza a fallar a los dos años misteriosamente. ", isMain: false },
+                    { text: "La obsolescencia programada es la planificación deliberada del fin de la vida útil de un producto para forzar al consumidor a comprar uno nuevo cíclicamente. ", isMain: true }
+                ],
+                explanation: "Definición de la estrategia empresarial deliberada."
+            },
+            {
+                topic: "Efecto Placebo",
+                segments: [
+                    { text: "Una pastilla de azúcar puede quitar el dolor de cabeza. ", isMain: false },
+                    { text: "El efecto placebo demuestra el poder de la sugestión mental sobre la fisiología, provocando una mejoría real basada únicamente en la expectativa de curación. ", isMain: true },
+                    { text: "Es un problema para probar medicamentos nuevos. ", isMain: false }
+                ],
+                explanation: "Poder de la sugestión sobre la fisiología."
+            },
+            {
+                topic: "Inteligencia Emocional",
+                segments: [
+                    { text: "Ser listo no garantiza el éxito en la vida. ", isMain: false },
+                    { text: "El CI mide la lógica, pero la inteligencia emocional es la capacidad de reconocer, comprender y gestionar nuestras propias emociones y las de los demás. ", isMain: true },
+                    { text: "Daniel Goleman popularizó este término en los 90. ", isMain: false }
+                ],
+                explanation: "Definición de la capacidad (gestión emocional) vs inteligencia lógica."
+            },
+            {
+                topic: "Paradoja de Fermi",
+                segments: [
+                    { text: "El universo es infinito y viejo. ", isMain: false },
+                    { text: "Debería estar lleno de civilizaciones, pero no vemos a nadie. ", isMain: false },
+                    { text: "La Paradoja de Fermi señala la contradicción entre la alta probabilidad estadística de vida extraterrestre y la total ausencia de evidencia de contacto. ", isMain: true }
+                ],
+                explanation: "La contradicción estadística/evidencia es la paradoja."
+            },
+            {
+                topic: "Soft Power (Poder Blando)",
+                segments: [
+                    { text: "Los tanques y misiles son poder duro. ", isMain: false },
+                    { text: "El 'Soft Power' es la capacidad de un país para influir en otros a través de la atracción cultural y los valores políticos, en lugar de la coacción militar. ", isMain: true },
+                    { text: "Hollywood y el K-Pop son armas de poder blando. ", isMain: true }
+                ],
+                explanation: "Definición de influencia por atracción vs coacción."
+            },
+            {
+                topic: "Deepfakes",
+                segments: [
+                    { text: "Vemos videos de presidentes diciendo cosas que nunca dijeron. ", isMain: false },
+                    { text: "Los deepfakes utilizan inteligencia artificial para manipular audio y video con un realismo que hace casi imposible distinguir la verdad de la mentira. ", isMain: true },
+                    { text: "Esto plantea una amenaza sin precedentes para la seguridad informativa y la reputación de las personas. ", isMain: true },
+                    { text: "Tom Cruise tiene videos falsos muy famosos en TikTok. ", isMain: false }
+                ],
+                explanation: "La definición tecnológica y la amenaza a la seguridad informativa son los dos pilares de la idea principal."
+            }
+        ];
+
+        // --- COMPONENTES UI AUXILIARES ---
+        const FloatingText = ({ x, y, text, color }) => (
+            <div 
+                className="fixed pointer-events-none animate-floatUp font-black text-2xl z-50 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                style={{ left: x, top: y, color: color || '#fbbf24' }}
+            >
+                {text}
+            </div>
+        );
+
+        const Confetti = () => (
+            <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden flex justify-center">
+                {[...Array(60)].map((_, i) => (
+                    <div key={i} className="absolute top-0 animate-confetti"
+                        style={{
+                            left: `${Math.random() * 100}%`,
+                            animationDelay: `${Math.random() * 2}s`,
+                            backgroundColor: ['#fbbf24', '#f43f5e', '#34d399', '#60a5fa', '#a78bfa'][Math.floor(Math.random() * 5)],
+                            width: `${Math.random() * 10 + 5}px`, 
+                            height: `${Math.random() * 10 + 5}px`,
+                            transform: `rotate(${Math.random() * 360}deg)`
+                        }}
+                    />
+                ))}
+            </div>
+        );
+
+        // --- COMPONENTE DE ENTRENAMIENTO MEJORADO ---
+        const TrainingModule = ({ userName, onComplete }) => {
+            const [step, setStep] = useState(0);
+
+            const steps = [
+                {
+                    title: `¡Bienvenido, Agente ${userName}!`,
+                    icon: "fa-id-card",
+                    color: "text-blue-400",
+                    content: (
+                        <div className="space-y-6">
+                            <p className="text-xl leading-relaxed">
+                                Has sido reclutado para la unidad de élite de <strong>Análisis Textual</strong>.
+                                Tu misión es simple pero peligrosa: encontrar la verdad oculta en montañas de palabras.
+                            </p>
+                            <p className="text-slate-300">
+                                Antes de enviarte al campo con los 50 expedientes confidenciales, debes dominar las <strong>3 Reglas de Oro</strong> del detective.
+                            </p>
+                        </div>
+                    ),
+                    action: "Comenzar Entrenamiento"
+                },
+                {
+                    title: "Regla 1: El Tema NO es la Idea",
+                    icon: "fa-shapes",
+                    color: "text-yellow-400",
+                    content: (
+                        <div className="space-y-6 text-left">
+                            <p className="text-center text-slate-300 mb-4">Muchos novatos confunden de qué se habla con lo que se dice.</p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-slate-900/60 p-6 rounded-xl border-l-4 border-yellow-500">
+                                    <h4 className="text-yellow-400 font-bold mb-2"><i className="fas fa-tag mr-2"></i>El Tema</h4>
+                                    <p className="text-sm text-slate-300">Es solo una etiqueta corta. No tiene verbo ni predicado completo.</p>
+                                    <div className="mt-3 bg-slate-800 p-2 rounded text-center font-mono text-xs">Ej: "Los Volcanes"</div>
+                                </div>
+                                
+                                <div className="bg-slate-900/60 p-6 rounded-xl border-l-4 border-emerald-500 shadow-lg shadow-emerald-500/10">
+                                    <h4 className="text-emerald-400 font-bold mb-2"><i className="fas fa-lightbulb mr-2"></i>La Idea Principal</h4>
+                                    <p className="text-sm text-slate-300">Es una oración completa que afirma o niega algo sobre el tema.</p>
+                                    <div className="mt-3 bg-slate-800 p-2 rounded text-center font-mono text-xs text-emerald-200">Ej: "Los volcanes actúan como válvulas de escape para el calor interno de la Tierra."</div>
+                                </div>
+                            </div>
+                            <p className="text-center font-bold text-white mt-4">¡Agente {userName}, busca siempre la oración completa!</p>
+                        </div>
+                    ),
+                    action: "Entendido, siguiente"
+                },
+                {
+                    title: "Regla 2: El Filtro de Ruido",
+                    icon: "fa-filter",
+                    color: "text-rose-400",
+                    content: (
+                        <div className="space-y-6">
+                            <p>Los textos están llenos de "paja" para distraerte. Tu trabajo es ignorar el ruido.</p>
+                            
+                            <div className="bg-slate-900 p-6 rounded-xl border border-slate-700 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-bl">ENEMIGOS</div>
+                                <ul className="space-y-3">
+                                    <li className="flex items-center gap-3 text-slate-300">
+                                        <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400"><i className="fas fa-calendar-alt"></i></div>
+                                        <span><strong>Fechas exactas:</strong> "En 1492..." (Suelen ser detalles)</span>
+                                    </li>
+                                    <li className="flex items-center gap-3 text-slate-300">
+                                        <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400"><i className="fas fa-quote-right"></i></div>
+                                        <span><strong>Anécdotas:</strong> "Mi abuela decía que..." (Ejemplos, no tesis)</span>
+                                    </li>
+                                    <li className="flex items-center gap-3 text-slate-300">
+                                        <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400"><i className="fas fa-list-ul"></i></div>
+                                        <span><strong>Listas:</strong> "Peras, manzanas, uvas..." (Busca la categoría "Frutas")</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <p className="text-sm text-center italic opacity-80">"Si borras una frase y el texto pierde su sentido, ESA es la idea principal."</p>
+                        </div>
+                    ),
+                    action: "Activar Filtros"
+                },
+                {
+                    title: "Regla 3: No te fíes de la posición",
+                    icon: "fa-compass",
+                    color: "text-purple-400",
+                    content: (
+                        <div className="space-y-5">
+                            <p>Muchos creen que la idea principal siempre está al principio. <strong>¡Error!</strong></p>
+                            
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-lg border-l-4 border-blue-400">
+                                    <div className="text-2xl">⬇️</div>
+                                    <div className="text-left">
+                                        <div className="font-bold text-blue-300">Texto Deductivo</div>
+                                        <div className="text-xs">Idea al inicio -> Explicación después.</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-lg border-l-4 border-purple-400">
+                                    <div className="text-2xl">⬆️</div>
+                                    <div className="text-left">
+                                        <div className="font-bold text-purple-300">Texto Inductivo</div>
+                                        <div className="text-xs">Detalles primero -> Conclusión (Idea) al final.</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-lg border-l-4 border-orange-400">
+                                    <div className="text-2xl">↔️</div>
+                                    <div className="text-left">
+                                        <div className="font-bold text-orange-300">Idea Fragmentada</div>
+                                        <div className="text-xs">A veces necesitas conectar el principio con el final.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ),
+                    action: "Entendido"
+                },
+                {
+                    title: "¿Listo para el despliegue?",
+                    icon: "fa-flag-checkered",
+                    color: "text-emerald-400",
+                    content: (
+                        <div className="space-y-6 text-center">
+                            <div className="text-6xl mb-4 animate-bounce">🚦</div>
+                            <p className="text-xl">Agente <strong>{userName}</strong>, tu equipo está listo.</p>
+                            
+                            <div className="grid grid-cols-3 gap-2 text-sm font-bold mt-4">
+                                <div className="bg-slate-800 p-3 rounded border border-slate-600">
+                                    <div className="text-rose-400 block text-lg">3</div>
+                                    Vidas
+                                </div>
+                                <div className="bg-slate-800 p-3 rounded border border-slate-600">
+                                    <div className="text-yellow-400 block text-lg">30s</div>
+                                    Por Caso
+                                </div>
+                                <div className="bg-slate-800 p-3 rounded border border-slate-600">
+                                    <div className="text-blue-400 block text-lg">50</div>
+                                    Niveles
+                                </div>
+                            </div>
+                            
+                            <p className="animate-pulse text-emerald-300 font-bold mt-4">¡Que comience la investigación!</p>
+                        </div>
+                    ),
+                    action: "¡INICIAR MISIÓN!",
+                    isFinal: true
+                }
+            ];
+
+            const currentStep = steps[step];
+
+            return (
+                <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 animate-fadeIn">
+                    <div className="max-w-3xl w-full glass-panel p-8 rounded-3xl shadow-2xl relative overflow-hidden flex flex-col h-[750px]">
+                        
+                        {/* Progress Bar */}
+                        <div className="absolute top-0 left-0 w-full h-2 bg-slate-800">
+                            <div 
+                                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                                style={{ width: `${((step + 1) / steps.length) * 100}%` }}
+                            ></div>
+                        </div>
+
+                        {/* Fixed Height Header Area */}
+                        <div className="flex-none">
+                            <div className="mb-6 flex justify-center animate-floatUp">
+                                <div className={`w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center text-4xl border-4 ${currentStep.color.replace('text', 'border')} shadow-lg`}>
+                                    <i className={`fas ${currentStep.icon} ${currentStep.color}`}></i>
+                                </div>
+                            </div>
+
+                            <h2 className="text-3xl md:text-4xl font-black text-white mb-6 text-center tracking-tight animate-slideInRight h-[80px] flex items-center justify-center">
+                                {currentStep.title}
+                            </h2>
+                        </div>
+
+                        {/* Flexible Content Area */}
+                        <div className="text-slate-300 text-lg leading-relaxed mb-8 flex-1 flex flex-col justify-center animate-fadeIn px-8">
+                            {currentStep.content}
+                        </div>
+
+                        {/* Footer - Fixed at bottom via flex layout */}
+                        <div className="flex justify-between items-center mt-auto pt-8 border-t border-white/5">
+                            {/* Left Side: Back Button */}
+                            <div className="w-1/3">
+                                {step > 0 && (
+                                    <button 
+                                        onClick={() => setStep(prev => prev - 1)}
+                                        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-bold px-4 py-2 rounded-lg hover:bg-white/5"
+                                    >
+                                        <i className="fas fa-arrow-left"></i> Anterior
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Right Side: Next Button */}
+                            <div className="w-1/3 flex justify-end">
+                                <button 
+                                    onClick={() => {
+                                        if (currentStep.isFinal) onComplete();
+                                        else setStep(prev => prev + 1);
+                                    }}
+                                    className="group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-white transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:scale-105 shadow-lg"
+                                >
+                                    <span>{currentStep.action}</span>
+                                    <i className={`fas ${currentStep.isFinal ? 'fa-play' : 'fa-arrow-right'} ml-3 group-hover:translate-x-1 transition-transform`}></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- APP PRINCIPAL ---
+        function App() {
+            const [gameState, setGameState] = useState('start'); 
+            const [userName, setUserName] = useState("");
+            const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
+            
+            // Estados de Juego y Puntuación
+            const [score, setScore] = useState(0);
+            const [highScore, setHighScore] = useState(0);
+            const [combo, setCombo] = useState(0);
+            const [maxCombo, setMaxCombo] = useState(0); 
+            const [energy, setEnergy] = useState(100); 
+            const [perfectLevels, setPerfectLevels] = useState(0); 
+            const [startTime, setStartTime] = useState(0); 
+            const [lives, setLives] = useState(3); // NUEVO: 3 Vidas
+
+            const [selectedSegments, setSelectedSegments] = useState(new Set());
+            const [isChecking, setIsChecking] = useState(false);
+            const [feedback, setFeedback] = useState(null);
+            const [gameLevels, setGameLevels] = useState([]);
+            
+            // Efectos Visuales
+            const [isShaking, setIsShaking] = useState(false);
+            const [floatingTexts, setFloatingTexts] = useState([]);
+            const timerRef = useRef(null);
+
+            // Cargar High Score
+            useEffect(() => {
+                const storedHigh = localStorage.getItem('detectiveHighScore');
+                if (storedHigh) setHighScore(parseInt(storedHigh));
+            }, []);
+
+            // Actualizar Max Combo
+            useEffect(() => {
+                if (combo > maxCombo) setMaxCombo(combo);
+            }, [combo]);
+
+            // Guardar High Score
+            useEffect(() => {
+                if (score > highScore) {
+                    setHighScore(score);
+                    localStorage.setItem('detectiveHighScore', score);
+                }
+            }, [score]);
+
+            // Timer de Energía (Bonus de Velocidad) - AJUSTADO A 30 SEGUNDOS
+            useEffect(() => {
+                if (gameState === 'playing' && !isChecking) {
+                    setEnergy(100); 
+                    timerRef.current = setInterval(() => {
+                        setEnergy(prev => Math.max(0, prev - 1)); 
+                    }, 300); // 100 pasos * 300ms = 30000ms = 30 segundos
+                }
+                return () => clearInterval(timerRef.current);
+            }, [currentLevelIndex, gameState, isChecking]);
+
+            const shuffleLevels = (data) => {
+                let pool = [...data];
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                return pool;
+            };
+
+            const handleNameSubmit = (name) => {
+                setUserName(name);
+                const shuffled = shuffleLevels(rawData);
+                setGameLevels(shuffled);
+                setGameState('learning');
+            };
+
+            const handleFinishLearning = () => {
+                setGameState('playing');
+                setStartTime(Date.now()); 
+            };
+
+            const toggleSegment = (index) => {
+                if (isChecking) return;
+                const newSet = new Set(selectedSegments);
+                if (newSet.has(index)) {
+                    newSet.delete(index);
+                } else {
+                    newSet.add(index);
+                }
+                setSelectedSegments(newSet);
+            };
+
+            const addFloatingText = (text, color) => {
+                const x = window.innerWidth / 2 + (Math.random() * 100 - 50);
+                const y = window.innerHeight / 2 - 100;
+                const id = Date.now();
+                setFloatingTexts(prev => [...prev, { id, x, y, text, color }]);
+                setTimeout(() => {
+                    setFloatingTexts(prev => prev.filter(ft => ft.id !== id));
+                }, 800);
+            };
+
+            const checkAnswer = () => {
+                if (selectedSegments.size === 0) return;
+                
+                clearInterval(timerRef.current);
+                setIsChecking(true);
+                const currentData = gameLevels[currentLevelIndex];
+                
+                const correctIndices = currentData.segments
+                    .map((seg, idx) => seg.isMain ? idx : -1)
+                    .filter(idx => idx !== -1);
+                
+                const selectedIndices = Array.from(selectedSegments);
+                const missed = correctIndices.filter(idx => !selectedSegments.has(idx));
+                const extras = selectedIndices.filter(idx => !correctIndices.includes(idx));
+                
+                const isPerfect = missed.length === 0 && extras.length === 0;
+
+                if (isPerfect) {
+                    const basePoints = 100;
+                    const speedBonus = Math.floor(energy / 2); 
+                    const multiplier = 1 + (combo * 0.5); 
+                    
+                    const totalPoints = Math.floor((basePoints + speedBonus) * multiplier);
+                    
+                    setScore(prev => prev + totalPoints);
+                    setCombo(prev => prev + 1);
+                    setPerfectLevels(prev => prev + 1);
+                    
+                    addFloatingText(`+${totalPoints}`, '#34d399');
+                    if (combo > 1) setTimeout(() => addFloatingText(`${1 + (combo * 0.5)}x COMBO!`, '#facc15'), 200);
+
+                    setFeedback({ type: 'success', msg: '¡Excelente! Captaste la esencia.' });
+                } else {
+                    // ERROR - LÓGICA DE VIDAS
+                    setCombo(0);
+                    setIsShaking(true);
+                    setTimeout(() => setIsShaking(false), 300);
+
+                    setLives(prev => {
+                        const newLives = prev - 1;
+                        if (newLives <= 0) {
+                             setTimeout(() => setGameState('gameover'), 1500); // Retraso para ver feedback
+                        }
+                        return newLives;
+                    });
+
+                    let msg = 'No es exacto.';
+                    if (missed.length > 0 && extras.length === 0) msg = 'Te faltó parte de la idea.';
+                    else if (missed.length === 0 && extras.length > 0) msg = 'Seleccionaste de más.';
+                    else msg = 'No coincide con el núcleo.';
+                    
+                    setFeedback({ type: 'error', msg: msg });
+                }
+            };
+
+            const nextLevel = () => {
+                // Si gameover fue activado en el checkAnswer, no avanzar
+                if (gameState === 'gameover') return;
+
+                setIsChecking(false);
+                setFeedback(null);
+                setSelectedSegments(new Set());
+                if (currentLevelIndex + 1 < gameLevels.length) {
+                    setCurrentLevelIndex(prev => prev + 1);
+                } else {
+                    setGameState('victory');
+                }
+            };
+
+            const restartGame = () => {
+                setCurrentLevelIndex(0);
+                setScore(0);
+                setCombo(0);
+                setMaxCombo(0);
+                setPerfectLevels(0);
+                setLives(3); // RESETEAR VIDAS
+                setIsChecking(false);
+                setFeedback(null);
+                setSelectedSegments(new Set());
+                // RE-BARAJAR: Garantiza un orden nuevo en cada reinicio
+                const shuffled = shuffleLevels(rawData);
+                setGameLevels(shuffled);
+                setGameState('playing'); 
+                setStartTime(Date.now());
+            };
+
+            // VISTAS PRINCIPALES
+            if (gameState === 'start') {
+                return (
+                    <div className="min-h-screen bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-950 to-black flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                        <div className="z-10 text-center max-w-3xl w-full glass-panel p-12 md:p-16 rounded-3xl animate-fadeIn border-0 shadow-2xl flex flex-col items-center justify-center gap-8 h-[750px]">
+                            
+                            {/* Icon & Title Group */}
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="text-8xl mb-2 animate-floatUp">🕵️‍♀️</div>
+                                <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-tight">
+                                    DETECTIVE DE <br/>
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-600">IDEAS PRINCIPALES</span>
+                                </h1>
+                                <p className="text-xl text-slate-400 font-medium tracking-widest uppercase">Ultimate Edition</p>
+                            </div>
+                            
+                            {/* Stats Section - Separated */}
+                            {highScore > 0 && (
+                                <div className="w-full flex justify-center py-2">
+                                    <div className="flex flex-col items-center animate-fadeIn">
+                                        <span className="text-xs text-yellow-500/80 font-bold uppercase tracking-widest mb-1">Récord Actual</span>
+                                        <div className="inline-flex items-center gap-3 bg-slate-900/50 border border-yellow-500/30 px-8 py-3 rounded-2xl text-yellow-400 font-black text-2xl shadow-lg backdrop-blur-md animate-pulse-gold">
+                                            <i className="fas fa-trophy text-yellow-500"></i> 
+                                            {highScore.toLocaleString()}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Action Section - Separated */}
+                            <div className="pt-4">
+                                <button onClick={() => setGameState('inputName')} className="group relative inline-flex items-center justify-center px-12 py-5 text-2xl font-bold text-white transition-all duration-200 bg-gradient-to-r from-rose-600 to-orange-600 rounded-2xl hover:scale-105 hover:shadow-[0_0_40px_rgba(244,63,94,0.6)] shadow-[0_0_20px_rgba(244,63,94,0.4)]">
+                                    <span className="drop-shadow-md">JUGAR AHORA</span>
+                                    <i className="fas fa-play ml-4 text-xl group-hover:translate-x-1 transition-transform drop-shadow-md"></i>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                );
+            }
+
+            if (gameState === 'inputName') {
+                return (
+                    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 animate-fadeIn">
+                        <div className="glass-panel p-12 md:p-16 rounded-3xl shadow-2xl max-w-3xl w-full text-center h-[750px] flex flex-col items-center justify-center relative overflow-hidden">
+                            <h2 className="text-3xl font-bold text-white mb-6">Identificación de Agente</h2>
+                            <form onSubmit={(e) => { e.preventDefault(); if(userName.trim()) handleNameSubmit(userName); }} className="space-y-6 w-full max-w-md">
+                                <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="Nombre Clave" className="w-full bg-slate-950/50 border border-slate-600 rounded-xl px-4 py-4 text-white text-center text-xl focus:border-rose-500 focus:ring-rose-500 outline-none transition-all placeholder:text-slate-600 font-mono" autoFocus />
+                                <button type="submit" disabled={!userName.trim()} className={`w-full font-bold py-4 px-6 rounded-xl transition-all text-lg ${userName.trim() ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg transform hover:scale-105' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}>Confirmar Identidad</button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (gameState === 'learning') return <TrainingModule userName={userName} onComplete={handleFinishLearning} />;
+
+            if (gameState === 'gameover') {
+                return (
+                    <div className="min-h-screen bg-red-950 flex items-center justify-center p-4 text-white">
+                        <div className="glass-panel-danger p-12 rounded-3xl shadow-2xl text-center max-w-2xl w-full animate-fadeIn border border-red-500/30">
+                            <div className="text-8xl mb-6 animate-pulse text-red-500">☠️</div>
+                            <h1 className="text-6xl font-black mb-4 text-white tracking-tight">MISIÓN FALLIDA</h1>
+                            <p className="text-2xl text-rose-200 mb-8 font-light">Agente <span className="font-bold">{userName}</span> eliminado.</p>
+                            
+                            <div className="text-4xl font-black text-white/90 mb-2">Puntuación Final</div>
+                            <div className="text-6xl font-black text-rose-500 mb-10">{score.toLocaleString()}</div>
+                            
+                            <p className="text-rose-300 mb-8 text-lg">Has perdido tus 3 vidas. Todo el progreso ha sido eliminado.</p>
+
+                            <button onClick={restartGame} className="bg-white text-red-900 font-black py-4 px-10 rounded-full hover:bg-rose-100 transition shadow-xl text-xl uppercase tracking-wider hover:scale-105">
+                                REINTENTAR OPERACIÓN
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (gameState === 'victory') {
+                const totalTimeSeconds = Math.floor((Date.now() - startTime) / 1000);
+                const accuracy = Math.round((perfectLevels / gameLevels.length) * 100);
+
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 flex items-center justify-center p-4 text-white overflow-y-auto">
+                        <Confetti />
+                        <div className="glass-panel p-10 rounded-3xl shadow-2xl text-center max-w-2xl w-full animate-fadeIn border border-white/10 my-8">
+                            <div className="text-7xl mb-4">🏅</div>
+                            <h1 className="text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-600">INFORME FINAL</h1>
+                            <p className="text-2xl text-slate-300 mb-8 font-light">Agente: <span className="font-bold text-white">{userName}</span></p>
+                            
+                            <div className="grid grid-cols-3 gap-4 mb-8">
+                                <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5">
+                                    <div className="text-slate-400 text-xs uppercase font-bold mb-1">Puntuación</div>
+                                    <div className="text-3xl font-black text-rose-400">{score.toLocaleString()}</div>
+                                </div>
+                                <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5">
+                                    <div className="text-slate-400 text-xs uppercase font-bold mb-1">Precisión</div>
+                                    <div className={`text-3xl font-black ${accuracy === 100 ? 'text-emerald-400' : 'text-blue-400'}`}>{accuracy}%</div>
+                                </div>
+                                <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5">
+                                    <div className="text-slate-400 text-xs uppercase font-bold mb-1">Vidas Restantes</div>
+                                    <div className="text-3xl font-black text-rose-500">{lives}</div>
+                                </div>
+                            </div>
+
+                            {/* Medallas */}
+                            <div className="mb-10">
+                                <h3 className="text-slate-400 text-sm uppercase tracking-widest mb-4">Medallas Obtenidas</h3>
+                                <div className="flex justify-center gap-4 flex-wrap">
+                                    {accuracy === 100 && <span className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/50 rounded-full text-emerald-300 text-sm font-bold flex items-center gap-2"><i className="fas fa-crosshairs"></i> Francotirador</span>}
+                                    {maxCombo >= 10 && <span className="px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 rounded-full text-yellow-300 text-sm font-bold flex items-center gap-2"><i className="fas fa-fire"></i> Imparable</span>}
+                                    {lives === 3 && <span className="px-4 py-2 bg-rose-500/20 border border-rose-500/50 rounded-full text-rose-300 text-sm font-bold flex items-center gap-2"><i className="fas fa-heart"></i> Inmortal</span>}
+                                    {score >= 20000 && <span className="px-4 py-2 bg-purple-500/20 border border-purple-500/50 rounded-full text-purple-300 text-sm font-bold flex items-center gap-2"><i className="fas fa-crown"></i> Leyenda</span>}
+                                    {accuracy < 100 && maxCombo < 10 && score < 20000 && <span className="px-4 py-2 bg-slate-500/20 border border-slate-500/50 rounded-full text-slate-300 text-sm font-bold">Novato (Sigue intentando)</span>}
+                                </div>
+                            </div>
+
+                            <button onClick={restartGame} className="w-full bg-white text-slate-900 font-black py-4 px-8 rounded-xl hover:bg-slate-200 transition shadow-xl text-xl uppercase tracking-wider">
+                                Nueva Misión
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            const currentData = gameLevels[currentLevelIndex];
+            const isOnFire = combo >= 5;
+
+            return (
+                <div className={`min-h-screen bg-slate-900 text-slate-200 p-4 md:p-6 overflow-y-auto ${isShaking ? 'animate-shake' : ''}`}>
+                    {floatingTexts.map(ft => <FloatingText key={ft.id} x={ft.x} y={ft.y} text={ft.text} color={ft.color} />)}
+
+                    <div className="max-w-5xl mx-auto relative pb-20">
+                        {/* Header Stats */}
+                        <div className={`glass-panel p-4 rounded-2xl mb-6 flex flex-col md:flex-row items-center justify-between gap-4 transition-all duration-500 ${isOnFire ? 'on-fire-border' : 'border-slate-700'}`}>
+                            
+                            {/* Left Info */}
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold border-2 shadow-lg transition-colors ${isOnFire ? 'bg-yellow-600/50 border-yellow-400 text-yellow-200' : 'bg-rose-900/50 border-rose-500/50 text-rose-300'}`}>
+                                    {currentLevelIndex + 1}
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Agente</div>
+                                    <div className="text-lg font-bold text-white truncate max-w-[140px]">{userName}</div>
+                                </div>
+                            </div>
+
+                            {/* Center Progress & Energy */}
+                            <div className="flex-1 w-full md:px-8">
+                                <div className="flex justify-between items-end mb-1">
+                                    <div className="text-xs font-bold text-slate-400">{isOnFire ? <span className="text-yellow-400 animate-pulse">🔥 MODO RACHA</span> : 'ENERGÍA MENTAL'}</div>
+                                    
+                                    {/* CORAZONES DE VIDA */}
+                                    <div className="flex gap-1">
+                                        {[...Array(3)].map((_, i) => (
+                                            <i key={i} className={`fas fa-heart text-lg ${i < lives ? 'text-rose-500 animate-heartbeat' : 'text-slate-700'}`}></i>
+                                        ))}
+                                    </div>
+                                </div>
+                                {/* Energy Bar */}
+                                <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden mb-2">
+                                    <div className={`h-full transition-all duration-100 ease-linear ${energy > 50 ? 'bg-emerald-500' : energy > 20 ? 'bg-yellow-500' : 'bg-rose-500'}`} style={{ width: `${energy}%` }}></div>
+                                </div>
+                                {/* Total Progress */}
+                                <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${((currentLevelIndex) / gameLevels.length) * 100}%` }}></div>
+                                </div>
+                            </div>
+
+                            {/* Right Score */}
+                            <div className="text-right w-full md:w-auto">
+                                <div className="flex flex-col items-end">
+                                    {combo > 1 && <div className={`text-sm font-black mb-1 animate-bounce ${isOnFire ? 'text-yellow-400 animate-fire' : 'text-pink-400'}`}>{combo}x COMBO</div>}
+                                    <div className="text-3xl font-black text-white leading-none drop-shadow-md">{score.toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Game Card */}
+                        <div className={`glass-panel rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 ${isOnFire ? 'shadow-[0_0_30px_rgba(234,179,8,0.15)]' : ''}`}>
+                            <div className="bg-black/20 p-4 border-b border-white/5 flex justify-between items-center">
+                                <h2 className="text-xl md:text-2xl font-bold text-slate-200">{currentData.topic}</h2>
+                                <i className="fas fa-file-alt text-slate-600 text-2xl"></i>
+                            </div>
+
+                            <div className="p-6 md:p-10 text-lg md:text-xl leading-relaxed text-slate-300 font-serif">
+                                <div className="p-6 bg-slate-950/40 rounded-xl border border-white/5 shadow-inner">
+                                    {currentData.segments.map((segment, index) => {
+                                        const isSelected = selectedSegments.has(index);
+                                        const isMain = segment.isMain;
+                                        
+                                        let classes = "transition-all duration-200 px-1 py-0.5 rounded mx-0.5 inline border-b-2 border-transparent ";
+                                        
+                                        if (isChecking) {
+                                            if (isMain) classes += "highlight-correct font-semibold "; 
+                                            else if (isSelected) classes += "highlight-wrong opacity-60 "; 
+                                            else classes += "opacity-25 blur-[1px] "; 
+                                        } else {
+                                            classes += isSelected ? "highlight-selected font-medium text-white " : "highlight-hover hover:text-white ";
+                                        }
+
+                                        return (
+                                            <span key={index} onClick={() => toggleSegment(index)} className={classes}>
+                                                {segment.text}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Controls */}
+                            <div className="p-6 bg-black/20 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div className="flex-1 w-full min-h-[60px] flex items-center">
+                                    {feedback ? (
+                                        <div className={`w-full p-3 rounded-lg flex items-start gap-3 animate-fadeIn ${feedback.type === 'success' ? 'bg-emerald-500/20 text-emerald-200' : 'bg-rose-500/20 text-rose-200'}`}>
+                                            <i className={`fas ${feedback.type === 'success' ? 'fa-check-circle' : 'fa-times-circle'} text-xl mt-1`}></i>
+                                            <div>
+                                                <div className="font-bold">{feedback.msg}</div>
+                                                <div className="text-xs opacity-80 mt-1">{currentData.explanation}</div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-slate-500 text-sm flex items-center gap-2">
+                                            <i className="fas fa-info-circle"></i> Selecciona las frases clave para continuar.
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="w-full md:w-auto flex gap-2">
+                                    {!isChecking ? (
+                                        <button 
+                                            onClick={checkAnswer} 
+                                            disabled={selectedSegments.size === 0}
+                                            className={`w-full md:w-auto px-8 py-3 rounded-xl font-bold text-lg shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${selectedSegments.size > 0 ? 'bg-gradient-to-r from-rose-600 to-orange-600 text-white hover:brightness-110' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+                                        >
+                                            ANALIZAR <i className="fas fa-microscope"></i>
+                                        </button>
+                                    ) : (
+                                        <button 
+                                            onClick={nextLevel}
+                                            className="w-full md:w-auto px-8 py-3 rounded-xl font-bold text-lg bg-white text-slate-900 hover:bg-slate-200 shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                                        >
+                                            CONTINUAR <i className="fas fa-arrow-right"></i>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

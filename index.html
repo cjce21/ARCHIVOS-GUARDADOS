@@ -3,852 +3,644 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Desafío Matemático - Refuerzo Matemático</title>
-    <!-- Carga de Tailwind CSS -->
+    <title>Planificador Docente - Didac-Click</title>
+    
+    <!-- FUENTES -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- LIBRERÍAS EXTERNAS (CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.11/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7f7f7; 
-            transition: background-color 0.3s ease;
+        :root {
+            --m-blue: #1B4965;
+            --m-teal: #3A9D9D;
+            --m-red: #C00000;
+            --bg-soft: #F9FAFB;
+            --border-soft: #E5E7EB;
         }
-        .digit-input {
-            width: 1.6rem; 
-            height: 2.2rem; 
-            text-align: center;
-            font-size: 1.3rem; 
-            border: 2px solid #ccc;
-            border-radius: 0.5rem;
-            margin-left: 0.2rem; 
-            transition: all 0.2s;
-            background-color: white;
-            color: #333;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg-soft); 
+            color: #1f2937; 
+            overflow: hidden; 
+            margin: 0;
+            /* PROTECCIÓN: Deshabilitar selección de texto globalmente */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
-        .digit-input:focus {
-            border-color: #3b82f6; 
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+
+        /* PERMITIR selección solo en inputs y textareas para poder editar */
+        input, textarea {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        
+        /* Scrollbar invisible GLOBALMENTE */
+        * {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        *::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
+        
+        .no-horizontal-scroll {
+            overflow-x: hidden; 
+            overflow-y: auto;
+            white-space: pre-wrap;       
+            overflow-wrap: break-word;   
+            word-wrap: break-word;       
+        }
+
+        /* Inputs Unificados - COMPACTOS PERO LEGIBLES */
+        .input-compact {
+            width: 100%;
+            min-height: 36px; /* Ajustado para compactar */
+            padding: 6px 12px;
+            font-size: 13px;
+            line-height: 1.4;
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
+            background: white;
+            transition: all 0.2s ease;
+            color: #374151;
+            display: block;
+            resize: none;
+        }
+        
+        .input-compact:focus {
+            border-color: var(--m-teal);
+            box-shadow: 0 0 0 2px rgba(58, 157, 157, 0.1);
             outline: none;
         }
-        .operation-line {
-            display: flex;
-            justify-content: flex-end;
-            align-items: flex-end;
-            font-size: 2rem; 
-            font-weight: 700;
-            line-height: 1.1; 
-            padding-right: 0.5rem; 
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        }
-        .operator {
-            font-size: 1.3rem; 
-            padding-right: 0.3rem;
-            width: 1.3rem;
-            text-align: right;
-        }
-        .number-display {
-            min-width: 8rem; 
-            text-align: right;
-            padding-right: 0.3rem;
-            white-space: pre; 
-        }
-        .divider {
-            height: 3px; 
-            background-color: #333;
+        .input-compact::placeholder { color: #9CA3AF; }
+
+        /* Botones Sidebar - COMPACTOS */
+        .btn-sidebar {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            border-radius: 8px; font-weight: 600; letter-spacing: 0.3px; font-size: 11px;
+            height: 38px; /* Ajustado */
+            transition: all 0.2s; cursor: pointer; user-select: none; text-transform: uppercase;
             width: 100%;
-            margin-top: 0.3rem;
-            margin-bottom: 0.3rem;
         }
-         /* Animación de carga */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 4px solid #3498db;
-            width: 40px;
-            height: 40px;
-            animation: spin 2s linear infinite;
+        .btn-sidebar:active { transform: scale(0.98); }
+
+        /* Botones Base (Generales) */
+        .btn-base {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            border-radius: 6px; font-weight: 700; letter-spacing: 0.3px; font-size: 10px;
+            height: 32px; 
+            transition: all 0.2s; cursor: pointer; user-select: none; text-transform: uppercase;
+            width: 100%;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        .btn-base:active { transform: scale(0.98); }
+
+        /* Animaciones */
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
+        
+        .animate-slide-up { animation: slideInUp 0.4s ease-out forwards; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-scale-in { animation: scaleIn 0.2s ease-out forwards; }
+        .animate-pulse-slow { animation: pulse-slow 2s infinite; }
+        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+        .animate-float { animation: float 5s ease-in-out infinite; }
+
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
     </style>
 </head>
-<body class="bg-white min-h-screen flex flex-col items-center justify-center p-4 md:p-10">
-    
-    <!-- Pantalla de carga inicial -->
-    <div id="loading-screen" class="flex flex-col items-center justify-center">
-        <div class="loader"></div>
-        <p class="mt-4 text-gray-600">Cargando datos...</p>
-    </div>
+<body>
+    <div id="root"></div>
 
-    <div id="app-container" class="w-full max-w-4xl mx-auto bg-white p-4 flex-shrink-0 hidden">
-
-        <!-- Pantalla de Inicio (Menú Principal) -->
-        <div id="start-screen" class="p-4">
-            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-blue-600 mb-8 text-center">Menú Principal</h1>
-            
-            <p class="text-xl text-gray-600 mb-4 text-center"><span id="welcome-name" class="font-bold text-blue-600">Estudiante</span>, selecciona las operaciones:</p>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-                <button data-op="+" class="op-select-btn bg-green-500 hover:bg-green-600 text-white font-bold py-4 md:py-6 px-4 rounded-xl shadow-xl transition duration-300 transform hover:scale-105 border-4 border-transparent">
-                    Suma (+)
-                </button>
-                <button data-op="-" class="op-select-btn bg-red-500 hover:bg-red-600 text-white font-bold py-4 md:py-6 px-4 rounded-xl shadow-xl transition duration-300 transform hover:scale-105 border-4 border-transparent">
-                    Resta (-)
-                </button>
-                <button data-op="*" class="op-select-btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 md:py-6 px-4 rounded-xl shadow-xl transition duration-300 transform hover:scale-105 border-4 border-transparent">
-                    Multiplicación (×)
-                </button>
-                <button data-op="/" class="op-select-btn bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 md:py-6 px-4 rounded-xl shadow-xl transition duration-300 transform hover:scale-105 border-4 border-transparent">
-                    División (÷)
-                </button>
-            </div>
-
-            <div class="flex flex-col md:flex-row gap-4 mb-8 text-white text-center">
-                <button id="start-normal-btn" class="flex-1 bg-green-500 hover:bg-green-600 p-4 rounded-xl shadow-lg transition transform hover:scale-105">
-                    <h3 class="font-bold text-xl">Normal</h3>
-                    <p class="font-normal text-sm opacity-90">Practica sin tiempo y sin afectar tu progreso.</p>
-                </button>
-                <button id="start-competitive-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 p-4 rounded-xl shadow-lg transition transform hover:scale-105">
-                    <h3 class="font-bold text-xl">Competitivo</h3>
-                    <p class="font-normal text-sm opacity-90">Juega contra el reloj y sube de nivel.</p>
-                </button>
-            </div>
-
-            <div id="start-error" class="text-red-500 font-semibold mb-4 hidden text-center"></div>
-
-            <button id="view-progress-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-extrabold text-lg md:text-xl py-4 rounded-xl shadow-md transition duration-300 mt-4">
-                Ver Progreso Actual
-            </button>
-             <div class="mt-8 text-center text-gray-400 text-sm">
-                Desafío Matemático - Un juego creado por el Tío Christopher | By Didac-Click Group.
-            </div>
-        </div>
-
-        <!-- Pantalla de Progreso -->
-        <div id="progress-screen" class="hidden p-4">
-             <div class="flex items-center justify-center mb-2">
-                <h1 class="text-3xl md:text-4xl font-extrabold text-blue-600 text-center">Progreso de </h1>
-                <div class="ml-2 flex items-center gap-2">
-                    <span id="progress-name" class="text-3xl md:text-4xl font-extrabold text-blue-600"></span>
-                    <button id="edit-name-btn" class="text-gray-500 hover:text-blue-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                    </button>
-                </div>
-            </div>
-            <!-- Campo para editar nombre (oculto por defecto) -->
-            <div id="edit-name-container" class="hidden flex-col items-center mt-2 mb-4">
-                <input type="text" id="edit-name-input" class="w-full max-w-xs p-2 border-2 border-gray-300 rounded-lg text-center">
-                <button id="save-new-name-btn" class="mt-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Guardar Nombre</button>
-            </div>
-            <p class="text-base md:text-lg text-gray-600 mb-8 text-center">Revisa el nivel de dificultad que has alcanzado en cada operación.</p>
-
-            <div class="bg-gray-100 p-6 rounded-2xl mb-8">
-                <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-4">Detalle por Operación:</h2>
-                <div id="progress-summary" class="text-lg md:text-xl space-y-3">
-                </div>
-            </div>
-
-            <button id="back-to-menu-from-progress-btn" class="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white font-extrabold text-xl py-4 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.01]">
-                Volver al Menú Principal
-            </button>
-        </div>
-
-        <!-- Pantalla de Juego -->
-        <div id="game-screen" class="hidden p-4">
-            
-            <p class="text-lg md:text-xl font-bold text-gray-700 mb-4">Jugador(a): <span id="game-player-name" class="text-pink-600"></span></p>
-
-            <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
-                <p class="text-lg md:text-xl font-bold text-gray-700">Nivel: <span id="current-level-display" class="text-blue-600">1</span> (<span id="digit-count-display">1</span> <span id="digit-word-display">dígito</span>)</p>
-                <p id="mastery-info" class="text-lg md:text-xl font-bold text-gray-700 text-center">Progreso: <span id="mastery-count-display" class="text-green-500"></span></p>
-            </div>
-
-            <div id="timer-container" class="bg-blue-500 text-white p-3 rounded-xl mb-4 text-center shadow-lg">
-                <div id="timer-display" class="text-3xl font-extrabold tracking-widest">--:--</div>
-                <p class="text-xs mt-1">Tiempo restante</p>
-                <p class="text-sm mt-1">Bono: <span id="time-bonus-pool-display" class="font-bold text-yellow-300">0</span>s</p>
-            </div>
-
-            <div class="bg-white p-6 rounded-xl flex flex-col items-center shadow-xl border border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-700 mb-3">Resuelve la Operación:</h2>
-
-                <div id="problem-display" class="flex flex-col items-end w-full max-w-xs mb-3">
-                </div>
-                <div class="divider w-full max-w-xs"></div>
-                <div id="answer-inputs" class="flex justify-end w-full max-w-xs mt-2">
-                </div>
-
-                <button id="submit-answer-btn" class="mt-6 bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105">
-                    Revisar Respuesta
-                </button>
-                <div id="inline-feedback" class="mt-4 h-6 text-center text-xl font-bold"></div>
-            </div>
-
-            <button id="back-to-menu-btn" class="mt-6 text-gray-500 hover:text-gray-700 text-sm mx-auto block">
-                Volver al Menú Principal
-            </button>
-        </div>
-    </div>
-    
-    <!-- MODALS -->
-    <!-- Modal de Bienvenida -->
-    <div id="welcome-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
-         <div class="bg-white p-6 rounded-2xl shadow-2xl text-center max-w-md w-full text-gray-800">
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-blue-600 mb-4">Desafío Matemático</h1>
-            <p class="text-base md:text-lg text-gray-700 mb-6">¡Pon a prueba tus habilidades y mejora tu agilidad mental!</p>
-            <button id="continue-from-welcome-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold text-xl py-3 px-8 rounded-xl shadow-xl transition duration-300 transform hover:scale-105">
-                Continuar
-            </button>
-        </div>
-    </div>
-    
-    <!-- Modal de Ingreso de Nombre -->
-    <div id="name-modal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white p-6 rounded-xl shadow-2xl text-center max-w-sm w-full border-4 border-blue-500">
-            <h3 class="text-2xl font-bold text-blue-600 mb-4">¡Identifícate para Guardar!</h3>
-            <p class="text-md text-gray-600 mb-4">Ingresa tu primer nombre para personalizar tu progreso.</p>
-            
-            <input type="text" id="modal-name-input" placeholder="Tu primer nombre (Ej: Ana)" 
-                   class="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300 text-xl mb-4">
-                   
-            <button id="save-name-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition duration-300">
-                Comenzar
-            </button>
-        </div>
-    </div>
-
-    <script type="module">
-        // Importaciones de Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
         
-        // --- Variables Globales ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const LOCAL_STORAGE_KEY = 'desafioMatematicoProgresoLocal';
-
-        let app, auth, db, userId, unsubscribe;
-        let isInitialLoad = true;
-        const MISTAKE_LIMIT_FOR_LEVEL_DOWN = 3;
-
-        let gameState = {
-            userName: '',
-            gameMode: 'normal',
-            selectedOperations: [], 
-            masteryGoal: 5,
-            problemsTotalPerSession: 10, 
-            problemsSolvedInSession: 0, 
-            consecutiveCorrect: 0, 
-            mistakesInLevel: {'+': 0, '-': 0, '*': 0, '/': 0},
-            progress: {'+': 1, '-': 1, '*': 1, '/': 1},
-            timeBonus: 0
+        // --- WRAPPER DE ICONOS ---
+        const Icon = ({ name, size = 16, className = "" }) => {
+            const ref = useRef(null);
+            useEffect(() => {
+                if (window.lucide && window.lucide.icons[name]) {
+                    const i = document.createElement('i');
+                    i.setAttribute('data-lucide', name);
+                    i.setAttribute('width', size);
+                    i.setAttribute('height', size);
+                    if (className) i.setAttribute('class', className);
+                    const temp = document.createElement('div');
+                    temp.appendChild(i);
+                    window.lucide.createIcons({ root: temp, nameAttr: 'data-lucide' });
+                    if (ref.current) ref.current.innerHTML = temp.innerHTML;
+                }
+            }, [name, size, className]);
+            return <span ref={ref} style={{ display: 'inline-flex', verticalAlign: 'middle' }}></span>;
         };
 
-        let sessionProgress = {};
-        let currentProblem = null;
-        let timerInterval = null;
-        let timeLimitSeconds = 0;
-        let secondsRemaining = 0;
-        let opToExclude = null;
+        // --- COMPONENTES UI ---
 
-        const DOMElements = {
-            loadingScreen: document.getElementById('loading-screen'),
-            appContainer: document.getElementById('app-container'),
-            welcomeModal: document.getElementById('welcome-modal'),
-            startScreen: document.getElementById('start-screen'),
-            progressScreen: document.getElementById('progress-screen'),
-            gameScreen: document.getElementById('game-screen'),
-            opSelectBtns: document.querySelectorAll('.op-select-btn'),
-            startNormalBtn: document.getElementById('start-normal-btn'),
-            startCompetitiveBtn: document.getElementById('start-competitive-btn'),
-            viewProgressBtn: document.getElementById('view-progress-btn'),
-            backToMenuFromProgressBtn: document.getElementById('back-to-menu-from-progress-btn'),
-            startError: document.getElementById('start-error'),
-            progressSummary: document.getElementById('progress-summary'),
-            levelDisplay: document.getElementById('current-level-display'),
-            digitCountDisplay: document.getElementById('digit-count-display'),
-            digitWordDisplay: document.getElementById('digit-word-display'),
-            masteryInfo: document.getElementById('mastery-info'),
-            masteryCountDisplay: document.getElementById('mastery-count-display'),
-            timerContainer: document.getElementById('timer-container'),
-            timerDisplay: document.getElementById('timer-display'),
-            timeBonusPoolDisplay: document.getElementById('time-bonus-pool-display'),
-            problemDisplay: document.getElementById('problem-display'),
-            answerInputs: document.getElementById('answer-inputs'),
-            submitAnswerBtn: document.getElementById('submit-answer-btn'),
-            backToMenuBtn: document.getElementById('back-to-menu-btn'),
-            inlineFeedback: document.getElementById('inline-feedback'),
-            nameModal: document.getElementById('name-modal'),
-            modalNameInput: document.getElementById('modal-name-input'),
-            saveNameBtn: document.getElementById('save-name-btn'),
-            welcomeName: document.getElementById('welcome-name'),
-            progressName: document.getElementById('progress-name'),
-            gamePlayerName: document.getElementById('game-player-name'),
-            editNameBtn: document.getElementById('edit-name-btn'),
-            editNameContainer: document.getElementById('edit-name-container'),
-            editNameInput: document.getElementById('edit-name-input'),
-            saveNewNameBtn: document.getElementById('save-new-name-btn'),
-            continueFromWelcomeBtn: document.getElementById('continue-from-welcome-btn'),
-        };
-
-        // ===============================================
-        // INICIALIZACIÓN Y DATOS
-        // ===============================================
-
-        async function initFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        await loadGameData();
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                });
-            } catch (error) {
-                console.error("Error al inicializar Firebase:", error);
-                loadGameDataFromLocal();
-                finishLoading(); 
-            }
-        }
-        
-        async function loadGameData() {
-            if (!db || !userId) {
-                loadGameDataFromLocal();
-                finishLoading();
-                return;
-            }
-            if (unsubscribe) unsubscribe();
-            
-            const docRef = doc(db, "artifacts", appId, "users", userId);
-            
-            unsubscribe = onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const onlineData = docSnap.data();
-                    gameState.userName = onlineData.userName || gameState.userName;
-                    gameState.progress = onlineData.progress || gameState.progress;
-                } else if (isInitialLoad) {
-                    loadGameDataFromLocal();
-                }
-
-                if (isInitialLoad) {
-                    finishLoading();
-                    isInitialLoad = false;
-                } else {
-                    updateAllUserNames();
-                }
-            }, (error) => {
-                console.error("Error al escuchar datos de Firestore:", error);
-                 if (isInitialLoad) {
-                    loadGameDataFromLocal();
-                    finishLoading();
-                    isInitialLoad = false;
-                }
-            });
-        }
-
-        function loadGameDataFromLocal() {
-            try {
-                const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (storedData) {
-                    const localState = JSON.parse(storedData);
-                    gameState.userName = localState.userName || '';
-                    gameState.progress = localState.progress || {'+': 1, '-': 1, '*': 1, '/': 1};
-                }
-            } catch (e) { console.error("Error cargando desde localStorage:", e); }
-        }
-
-        async function saveGameData() {
-            if (gameState.gameMode !== 'competitivo') return;
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
-                userName: gameState.userName,
-                progress: gameState.progress
-            }));
-            if (!db || !userId) return;
-            try {
-                const docRef = doc(db, "artifacts", appId, "users", userId);
-                await setDoc(docRef, {
-                    userName: gameState.userName,
-                    progress: gameState.progress
-                }, { merge: true });
-            } catch (error) { console.error("Error al guardar en Firebase: ", error); }
-        }
-        
-        function finishLoading() {
-            updateAllUserNames();
-            DOMElements.loadingScreen.classList.add('hidden');
-            DOMElements.welcomeModal.classList.remove('hidden');
-        }
-        
-        // ===============================================
-        // LÓGICA DE UI Y JUEGO
-        // ===============================================
-        
-        function updateAllUserNames() {
-            const name = gameState.userName || 'estudiante';
-            DOMElements.welcomeName.textContent = name;
-            DOMElements.progressName.textContent = name;
-            DOMElements.gamePlayerName.textContent = name;
-        }
-
-        function updateProgressSummary() {
-            let html = '';
-            for (const op in gameState.progress) {
-                const level = gameState.progress[op];
-                const opName = {'+': 'Suma', '-': 'Resta', '*': 'Multiplicación', '/': 'División'}[op];
-                const digitCount = Math.min(level, 10); 
-                html += `<p class="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
-                    <span class="font-medium text-gray-800">${opName}:</span>
-                    <span class="font-bold ${level >= 5 ? 'text-green-600' : 'text-blue-500'}">Nivel ${level} (${digitCount} ${digitCount === 1 ? 'dígito' : 'dígitos'})</span>
-                </p>`;
-            }
-            DOMElements.progressSummary.innerHTML = html || '<p class="text-center text-gray-500">Aún no hay progreso registrado. ¡Empieza a jugar!</p>';
-        }
-
-        function showScreen(screenName) {
-            DOMElements.appContainer.classList.remove('hidden');
-            const screens = ['start', 'game', 'progress'];
-            screens.forEach(id => {
-                const screenEl = DOMElements[`${id}Screen`];
-                if (screenEl) screenEl.classList.add('hidden');
-            });
-            
-            const targetScreen = DOMElements[`${screenName}Screen`];
-            if (targetScreen) {
-                targetScreen.classList.remove('hidden');
-            } else if (screenName === 'name-modal') {
-                DOMElements.nameModal.classList.remove('hidden');
-                DOMElements.modalNameInput.focus();
-            }
-
-            if (screenName === 'start' || screenName === 'progress' || screenName === 'game') {
-                updateAllUserNames();
-            }
-        }
-
-        function generateNumber(digits) {
-            if (digits < 1) digits = 1; 
-            const min = Math.pow(10, digits - 1);
-            const max = Math.pow(10, digits) - 1;
-            return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
-
-        function generateProblem() {
-            let potentialOps = [...gameState.selectedOperations];
-            if (opToExclude && potentialOps.length > 1) {
-                potentialOps = potentialOps.filter(op => op !== opToExclude);
-            }
-            opToExclude = null;
-
-            const op = potentialOps[Math.floor(Math.random() * potentialOps.length)];
-            const progressSource = gameState.gameMode === 'competitivo' ? gameState.progress : sessionProgress;
-            const level = progressSource[op]; 
-            const digits = Math.min(level, 10); 
-            const maxResult = Math.pow(10, digits); 
-
-            let num1, num2, result;
-            let attempts = 0;
-
-            if (op === '+') {
-                attempts = 0;
-                do {
-                    num1 = generateNumber(digits);
-                    num2 = generateNumber(digits);
-                    result = num1 + num2;
-                    attempts++;
-                } while (result >= maxResult && attempts < 50);
-                if (result >= maxResult) {
-                     num1 = generateNumber(digits > 1 ? digits - 1 : 1); 
-                     num2 = generateNumber(digits > 1 ? digits - 1 : 1);
-                     result = num1 + num2; 
-                }
-            } else if (op === '-') {
-                do {
-                    num1 = generateNumber(digits);
-                    num2 = generateNumber(digits);
-                } while (num1 <= num2);
-                result = num1 - num2;
-            } else if (op === '*') {
-                const maxFactor2Digits = Math.min(3, digits); 
-                do {
-                    num1 = generateNumber(digits); 
-                    num2 = generateNumber(maxFactor2Digits);
-                    result = num1 * num2;
-                    attempts++;
-                } while (result >= maxResult && attempts < 20);
-                if (attempts >= 20) {
-                     num1 = generateNumber(Math.floor(digits / 2) + 1);
-                     num2 = generateNumber(Math.floor(digits / 2));
-                     result = num1 * num2;
-                }
-            } else if (op === '/') {
-                if (digits === 1) {
-                    do {
-                        num2 = generateNumber(1);
-                        result = generateNumber(1);
-                        num1 = num2 * result;
-                    } while (num1 >= 10);
-                } else {
-                    let divisorDigits = Math.min(2, digits);
-                    do {
-                        num2 = generateNumber(divisorDigits); 
-                        result = generateNumber(digits); 
-                        num1 = num2 * result; 
-                    } while (num1.toString().length > digits + 2); 
-                }
-                if (result === 0) return generateProblem();
-            }
-
-            const num1Str = num1.toString();
-            const num2Str = num2.toString();
-            const resultStr = result.toString();
-            if (resultStr.length > digits) return generateProblem();
-
-            currentProblem = { op, num1, num2, result, num1Str, num2Str, resultStr, digits };
-            
-            if(gameState.gameMode === 'competitivo'){
-                let baseTime, complexityFactor;
-                if (op === '+' || op === '-') {
-                    baseTime = 20;
-                    complexityFactor = 8;
-                } else {
-                    baseTime = 30;
-                    complexityFactor = 15;
-                }
-                timeLimitSeconds = baseTime + (resultStr.length * complexityFactor);
-            }
-
-            DOMElements.levelDisplay.textContent = level;
-            DOMElements.digitCountDisplay.textContent = digits;
-            DOMElements.digitWordDisplay.textContent = digits === 1 ? 'dígito' : 'dígitos';
-            updateMasteryDisplay();
-            updateBonusPoolDisplay();
-        }
-
-        function renderProblem() {
-            if (!currentProblem) return;
-            const { op, num1Str, num2Str, resultStr } = currentProblem;
-            const maxLen = Math.max(num1Str.length, num2Str.length, resultStr.length);
-            const displayDiv = DOMElements.problemDisplay;
-            const inputsDiv = DOMElements.answerInputs;
-            displayDiv.innerHTML = '';
-            inputsDiv.innerHTML = '';
-            const formatNumber = (numStr) => `<div class="number-display">${' '.repeat(maxLen - numStr.length)}${numStr}</div>`;
-            displayDiv.innerHTML += `<div class="operation-line"><span class="operator invisible"> </span>${formatNumber(num1Str)}</div>`;
-            const operatorSymbol = op === '*' ? '×' : op === '/' ? '÷' : op;
-            displayDiv.innerHTML += `<div class="operation-line"><span class="operator text-${op === '+' ? 'green' : op === '-' ? 'red' : op === '*' ? 'yellow' : 'purple'}-600">${operatorSymbol}</span>${formatNumber(num2Str)}</div>`;
-            for (let i = 0; i < resultStr.length; i++) {
-                const input = document.createElement('input');
-                input.type = 'tel'; 
-                input.maxLength = 1;
-                input.id = `input-${i}`; 
-                input.className = 'digit-input';
-                inputsDiv.prepend(input); 
-            }
-            const unitsInput = inputsDiv.lastElementChild;
-            if (unitsInput) unitsInput.focus();
-        }
-
-        function startTimer() {
-            clearInterval(timerInterval);
-            secondsRemaining = timeLimitSeconds;
-            const updateDisplay = () => {
-                const display = DOMElements.timerDisplay;
-                const minutes = Math.floor(secondsRemaining / 60);
-                const seconds = secondsRemaining % 60;
-                display.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                display.classList.toggle('text-red-500', secondsRemaining <= 10 && gameState.timeBonus === 0);
+        const Toast = ({ message, type, onClose }) => {
+            useEffect(() => { const t = setTimeout(onClose, 5000); return () => clearTimeout(t); }, [onClose]);
+            const styles = {
+                success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                error: 'bg-red-50 text-red-800 border-red-200',
+                info: 'bg-white text-slate-700 border-slate-200',
+                loading: 'bg-blue-50 text-blue-800 border-blue-200'
             };
-            updateDisplay();
-            timerInterval = setInterval(() => {
-                secondsRemaining--;
-                updateDisplay();
-                if (secondsRemaining <= 0) {
-                    if (gameState.timeBonus > 0) {
-                        const bonusToUse = Math.min(gameState.timeBonus, 15);
-                        secondsRemaining += bonusToUse;
-                        gameState.timeBonus -= bonusToUse;
-                        updateBonusPoolDisplay();
-                        const timerDisp = DOMElements.timerDisplay;
-                        timerDisp.classList.add('bg-yellow-400', 'text-black', 'rounded-lg');
-                        setTimeout(() => timerDisp.classList.remove('bg-yellow-400', 'text-black', 'rounded-lg'), 500);
-                    } else {
-                        clearInterval(timerInterval);
-                        checkAnswer(true);
-                    }
-                }
-            }, 1000);
-        }
+            return (
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg animate-slide-up min-w-[300px] max-w-sm backdrop-blur-sm ${styles[type] || styles.info}`}>
+                    {type === 'success' ? <Icon name="Check" size={16} className="text-emerald-500" /> : 
+                     type === 'error' ? <Icon name="AlertCircle" size={16} className="text-red-500" /> : 
+                     type === 'loading' ? <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div> :
+                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>}
+                    <span className="text-xs font-semibold flex-1 leading-tight">{message}</span>
+                    <button onClick={onClose} className="opacity-40 hover:opacity-100 transition-opacity"><Icon name="X" size={14} /></button>
+                </div>
+            );
+        };
 
-        function stopTimer() { clearInterval(timerInterval); }
-        
-        function updateBonusPoolDisplay() {
-            DOMElements.timeBonusPoolDisplay.textContent = gameState.timeBonus;
-        }
+        // Select modificado
+        const CustomSelect = ({ value, onChange, options, placeholder, icon }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const containerRef = useRef(null);
+            useEffect(() => {
+                const handleClickOutside = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false); };
+                document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, []);
+            return (
+                <div className="relative w-full" ref={containerRef}>
+                    <div className={`w-full px-3 h-[36px] text-[13px] font-medium border rounded-lg cursor-pointer flex items-center justify-between bg-white text-slate-700 transition-all ${isOpen ? 'border-montessori-blue ring-1 ring-blue-100' : 'border-gray-200 hover:border-gray-300'}`} onClick={() => setIsOpen(!isOpen)}>
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            {icon && <Icon name={icon} size={14} className="text-slate-400 flex-shrink-0" />}
+                            <span className={`truncate ${!value ? 'text-slate-400' : 'text-slate-700'}`}>{value || placeholder}</span>
+                        </div>
+                        <Icon name="ChevronDown" size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                    {isOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-60 overflow-y-auto animate-fade-in">
+                            {options.map((opt, i) => (
+                                <div key={i} className={`px-4 py-2 text-[13px] cursor-pointer border-b border-gray-50 last:border-0 hover:bg-blue-50 hover:text-montessori-blue transition-colors ${value === opt ? 'bg-blue-50 text-montessori-blue font-bold' : 'text-slate-600'}`} onClick={() => { onChange(opt); setIsOpen(false); }}>
+                                    {opt}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
 
-        function checkAnswer(isTimeout = false) {
-            if(gameState.gameMode === 'competitivo') stopTimer();
-            DOMElements.submitAnswerBtn.disabled = true;
-            const inputs = Array.from(DOMElements.answerInputs.children);
-            let userAnswerRaw = inputs.map(input => input.value).join('');
-            
-            if (!isTimeout && userAnswerRaw.trim().length === 0) {
-                 DOMElements.inlineFeedback.textContent = "Debes ingresar una respuesta.";
-                 DOMElements.inlineFeedback.className = 'mt-4 h-6 text-center text-xl font-bold text-orange-500';
-                 setTimeout(() => {
-                    DOMElements.inlineFeedback.textContent = "";
-                    DOMElements.submitAnswerBtn.disabled = false;
-                    const unitsInput = DOMElements.answerInputs.lastElementChild;
-                    if (unitsInput) unitsInput.focus();
-                 }, 1500);
-                 return;
-            }
-
-            let userAnswer = userAnswerRaw.padStart(currentProblem.resultStr.length, '0');
-            const isCorrect = userAnswer === currentProblem.resultStr && !isTimeout;
-            opToExclude = isTimeout ? currentProblem.op : null;
-
-            const feedbackColor = isCorrect ? 'green' : 'red';
-            inputs.forEach(input => {
-                input.classList.remove('border-gray-300');
-                input.classList.add(`border-${feedbackColor}-500`, `ring-4`, `ring-${feedbackColor}-200`);
-            });
-
-            const feedbackDiv = DOMElements.inlineFeedback;
-            if (isCorrect) {
-                if(gameState.gameMode === 'competitivo') {
-                    const timeTaken = timeLimitSeconds - secondsRemaining;
-                    if (timeTaken < timeLimitSeconds * 0.4) {
-                        const bonusAwarded = 10;
-                        gameState.timeBonus += bonusAwarded;
-                        updateBonusPoolDisplay();
-                        feedbackDiv.textContent = `¡Rápido! +${bonusAwarded}s de bono`;
-                        feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-cyan-500';
-                    } else {
-                        feedbackDiv.textContent = '¡Correcto!';
-                        feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-green-600';
-                    }
-                } else {
-                     feedbackDiv.textContent = '¡Correcto!';
-                     feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-green-600';
-                }
-            } else if (isTimeout) {
-                feedbackDiv.textContent = `¡Tiempo! La respuesta era: ${currentProblem.resultStr}`;
-                feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-orange-500';
-            } else {
-                feedbackDiv.textContent = `La respuesta era: ${currentProblem.resultStr}`;
-                feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-red-600';
-            }
-
-            const op = currentProblem.op;
-            const progressSource = gameState.gameMode === 'competitivo' ? gameState.progress : sessionProgress;
-            const currentLevel = progressSource[op];
-            let sessionEnded = false;
-            let levelUpOccurred = false;
-            let levelDownOccurred = false;
-
-            if (isCorrect) {
-                gameState.consecutiveCorrect++;
-                gameState.mistakesInLevel[op] = 0;
-            } else {
-                gameState.consecutiveCorrect = 0;
-                if (currentLevel > 1) gameState.mistakesInLevel[op]++;
-            }
-            
-            gameState.problemsSolvedInSession++;
-
-            if (gameState.mistakesInLevel[op] >= MISTAKE_LIMIT_FOR_LEVEL_DOWN && currentLevel > 1) {
-                progressSource[op]--;
-                levelDownOccurred = true;
-                sessionEnded = true;
-                feedbackDiv.textContent = `¡Bajas al Nivel ${progressSource[op]}!`;
-                feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-purple-600';
-            } else if (gameState.consecutiveCorrect >= gameState.masteryGoal) {
-                sessionEnded = true;
-                if (currentLevel < 10) {
-                    progressSource[op]++;
-                    levelUpOccurred = true;
-                    feedbackDiv.textContent = `¡Nivel ${currentLevel + 1} Desbloqueado!`;
-                    feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-yellow-500';
-                } else {
-                     feedbackDiv.textContent = `¡Maestro del Nivel ${currentLevel}!`;
-                     feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-yellow-500';
-                }
-            } else if (gameState.gameMode === 'competitivo' && gameState.problemsSolvedInSession >= gameState.problemsTotalPerSession) {
-                sessionEnded = true;
-                feedbackDiv.textContent = '¡Sesión terminada! ¡Sigue así!';
-                feedbackDiv.className = 'mt-4 h-6 text-center text-xl font-bold text-blue-600';
-            }
-            
-            if (sessionEnded) {
-                gameState.consecutiveCorrect = 0;
-                gameState.problemsSolvedInSession = 0;
-                gameState.mistakesInLevel[op] = 0;
-            }
-            
-            saveGameData();
-            updateMasteryDisplay();
-
-            setTimeout(() => {
-                inputs.forEach(input => input.classList.remove(`border-green-500`, `border-red-500`, `ring-4`, `ring-green-200`, `ring-red-200`));
-                feedbackDiv.textContent = '';
-                DOMElements.submitAnswerBtn.disabled = false;
-                startGameRound();
-            }, levelUpOccurred || sessionEnded || levelDownOccurred ? 2500 : 1500);
-        }
-        
-        function updateMasteryDisplay() {
-            DOMElements.masteryInfo.classList.remove('hidden');
-            DOMElements.masteryCountDisplay.innerHTML = `<span class="text-green-600">${gameState.consecutiveCorrect}/${gameState.masteryGoal} (Racha)</span>`;
-            if (gameState.gameMode === 'competitivo') {
-                DOMElements.masteryCountDisplay.innerHTML += `<span class="text-gray-400 mx-2">|</span><span class="text-blue-600">${gameState.problemsSolvedInSession}/${gameState.problemsTotalPerSession} (Problemas)</span>`;
-            }
-        }
-
-        function startGameRound() {
-            if (gameState.selectedOperations.length === 0) {
-                showScreen('start'); return;
-            }
-            const isCompetitive = gameState.gameMode === 'competitivo';
-            DOMElements.timerContainer.classList.toggle('hidden', !isCompetitive);
-            DOMElements.masteryInfo.classList.remove('hidden');
-
-            showScreen('game');
-            generateProblem();
-            renderProblem();
-            if (isCompetitive) startTimer();
-        }
-        
-        function setupEventListeners() {
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    if (!DOMElements.gameScreen.classList.contains('hidden') && !DOMElements.submitAnswerBtn.disabled) {
-                        DOMElements.submitAnswerBtn.click();
-                    } else if (!DOMElements.nameModal.classList.contains('hidden')) {
-                        DOMElements.saveNameBtn.click();
-                    } else if (!DOMElements.welcomeModal.classList.contains('hidden')){
-                        DOMElements.continueFromWelcomeBtn.click();
-                    }
-                }
-            });
-
-            DOMElements.continueFromWelcomeBtn.addEventListener('click', () => {
-                DOMElements.welcomeModal.classList.add('hidden');
-                DOMElements.appContainer.classList.remove('hidden');
-                if (!gameState.userName) {
-                    showScreen('name-modal');
-                } else {
-                    showScreen('start');
-                }
-            });
-
-            DOMElements.saveNameBtn.addEventListener('click', () => {
-                const name = DOMElements.modalNameInput.value.trim().split(' ')[0];
-                if (name) {
-                    gameState.userName = name;
-                    saveGameData();
-                    updateAllUserNames();
-                    DOMElements.nameModal.classList.add('hidden');
-                    showScreen('start'); 
-                } else {
-                    DOMElements.modalNameInput.placeholder = "¡Nombre requerido!";
-                    DOMElements.modalNameInput.classList.add('border-red-500');
-                }
-            });
-            
-            DOMElements.answerInputs.addEventListener('input', (e) => {
-                const target = e.target;
-                if (target.matches('.digit-input') && target.value) {
-                    const prev = target.previousElementSibling;
-                    if(prev) prev.focus();
-                    else DOMElements.submitAnswerBtn.click();
-                }
-            });
-
-            DOMElements.answerInputs.addEventListener('keydown', (e) => {
-                const target = e.target;
-                if (e.key === 'Backspace' && target.matches('.digit-input') && !target.value) {
-                    const next = target.nextElementSibling;
-                    if (next) next.focus();
-                }
-            });
-
-            DOMElements.opSelectBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    btn.classList.toggle('border-transparent');
-                    btn.classList.toggle('border-blue-700');
-                    const op = btn.dataset.op;
-                    const index = gameState.selectedOperations.indexOf(op);
-                    index > -1 ? gameState.selectedOperations.splice(index, 1) : gameState.selectedOperations.push(op);
+        const ContextModal = ({ isOpen, onClose, contextText, setContextText, attachedImages, setAttachedImages }) => {
+            const fileInputRef = useRef(null);
+            if (!isOpen) return null;
+            const handleImageUpload = (e) => {
+                const files = Array.from(e.target.files);
+                const newImages = [];
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => { newImages.push(ev.target.result); if (newImages.length === files.length) setAttachedImages(prev => [...prev, ...newImages]); };
+                    reader.readAsDataURL(file);
                 });
-            });
+            };
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm animate-fade-in p-6">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] animate-scale-in border border-white/50">
+                        <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                            <div className="flex items-center gap-2">
+                                <div className="bg-blue-50 p-2 rounded-lg"><Icon name="Paperclip" size={16} className="text-[#1B4965]" /></div>
+                                <h3 className="font-bold text-sm text-slate-800">Centro de Recursos</h3>
+                            </div>
+                            <button onClick={onClose} className="p-2 hover:bg-gray-50 rounded-full text-slate-400 hover:text-red-500 transition-colors"><Icon name="X" size={18}/></button>
+                        </div>
+                        <div className="p-6 flex-1 overflow-y-auto">
+                            <textarea className="w-full h-40 p-4 rounded-xl bg-gray-50/50 border border-gray-200 text-xs focus:border-[#1B4965] focus:bg-white focus:ring-2 focus:ring-blue-50 outline-none resize-none transition-all placeholder:text-slate-400 leading-relaxed" placeholder="Pegue aquí el contenido de documentos, instrucciones específicas, o detalles curriculares adicionales..." value={contextText} onChange={(e) => setContextText(e.target.value)}></textarea>
+                            <div className="mt-6">
+                                <div className="flex justify-between items-center mb-3"><span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Archivos Visuales</span><span className="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500">{attachedImages.length} adjuntos</span></div>
+                                <div className="grid grid-cols-4 gap-3">
+                                    <div className="aspect-square border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#1B4965] hover:bg-blue-50/30 transition-all group" onClick={() => fileInputRef.current.click()}>
+                                        <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+                                        <Icon name="Upload" size={20} className="text-gray-300 group-hover:text-[#1B4965] mb-2 transition-colors" />
+                                        <span className="text-[9px] text-gray-400 font-medium group-hover:text-[#1B4965]">Subir</span>
+                                    </div>
+                                    {attachedImages.map((img, idx) => (
+                                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 group shadow-sm">
+                                            <img src={img} className="w-full h-full object-cover" alt="resource" />
+                                            <button onClick={() => setAttachedImages(prev => prev.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-white text-red-500 p-1 rounded-full opacity-0 group-hover:opacity-100 shadow-sm hover:bg-red-50 transition-all"><Icon name="X" size={12} /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-gray-50/30 flex justify-end gap-3"><button onClick={onClose} className="btn-base px-6 bg-[#1B4965] text-white hover:bg-[#153a51] shadow-lg shadow-blue-900/5"><Icon name="Check" size={14} /> Guardar</button></div>
+                    </div>
+                </div>
+            );
+        };
 
-            function handleStartGame(mode) {
-                 if (gameState.selectedOperations.length === 0) {
-                    DOMElements.startError.textContent = "Por favor, selecciona al menos una operación.";
-                    DOMElements.startError.classList.remove('hidden'); return;
-                }
-                DOMElements.startError.classList.add('hidden');
-                gameState.gameMode = mode;
-                
-                gameState.consecutiveCorrect = 0;
-                gameState.problemsSolvedInSession = 0;
-                gameState.mistakesInLevel = {'+': 0, '-': 0, '*': 0, '/': 0};
-                
-                if (mode === 'competitivo') {
-                    gameState.timeBonus = 0;
-                    updateBonusPoolDisplay();
-                } else {
-                    sessionProgress = JSON.parse(JSON.stringify(gameState.progress));
-                }
+        const ModificationModal = ({ isOpen, onClose, onApply }) => {
+            const [request, setRequest] = useState("");
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-fade-in p-6">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] animate-scale-in border border-white/50">
+                        <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                            <div className="flex items-center gap-2"><div className="bg-blue-50 p-2 rounded-lg"><Icon name="Sparkles" size={16} className="text-blue-500" /></div><h3 className="font-bold text-sm text-slate-800">Modificar Planificación</h3></div>
+                            <button onClick={onClose} className="p-2 hover:bg-gray-50 rounded-full text-slate-400 transition-colors"><Icon name="X" size={18}/></button>
+                        </div>
+                        <div className="p-6"><textarea className="w-full h-40 p-4 rounded-xl bg-gray-50 border border-gray-200 text-xs focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-50 outline-none resize-none transition-all placeholder:text-slate-400" placeholder="Describe los cambios que deseas realizar..." value={request} onChange={(e) => setRequest(e.target.value)}></textarea></div>
+                        <div className="p-4 border-t border-gray-100 bg-gray-50/30 flex justify-end gap-3">
+                            <button onClick={onClose} className="btn-base px-4 bg-white border border-gray-200 text-slate-600 hover:bg-gray-50">Cancelar</button>
+                            <button onClick={() => { onApply(request); onClose(); setRequest(""); }} className="btn-base px-6 bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20">Aplicar Cambios</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
-                startGameRound();
-            }
+        // --- PANTALLA DE INICIO (SPLASH) - COMPLETAMENTE NUEVA ---
+        const IntroScreen = ({ onStart }) => {
+            const [isStarting, setIsStarting] = useState(false);
+            const handleStart = () => { setIsStarting(true); setTimeout(onStart, 1200); };
+            return (
+                <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-[#F0F4F8] via-[#E1F0F5] to-[#E6F4F1] transition-opacity duration-500 ${isStarting ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    
+                    {/* Elementos decorativos de fondo más visibles */}
+                    <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#3A9D9D]/10 rounded-full blur-3xl animate-float"></div>
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#1B4965]/10 rounded-full blur-3xl animate-float" style={{animationDelay: '1s'}}></div>
+                    
+                    <div className="relative z-10 text-center space-y-8 animate-scale-in p-8">
+                        <div className="w-32 h-32 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto border-4 border-white mb-4 relative overflow-hidden group hover:scale-105 transition-transform duration-500">
+                             <div className="absolute inset-0 bg-gradient-to-tr from-blue-50 to-teal-50 opacity-50"></div>
+                             <Icon name="Layers" size={64} className="text-[#1B4965] relative z-10 drop-shadow-sm" />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h1 className="text-4xl font-black text-[#1B4965] tracking-tight font-montserrat drop-shadow-sm">DIDAC-CLICK</h1>
+                            <div className="h-1 w-16 bg-[#3A9D9D] mx-auto rounded-full"></div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.3em] pt-2">Plataforma de Planificación Inteligente</p>
+                        </div>
+                        
+                        <div className="flex justify-center pt-4">
+                            <button onClick={handleStart} disabled={isStarting} className="relative group overflow-hidden rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+                                <div className="absolute inset-0 bg-gradient-to-r from-[#1B4965] to-[#2A6F97] transition-all duration-300 group-hover:scale-110"></div>
+                                <div className="relative flex items-center justify-center gap-3 px-10 py-4 font-bold text-white text-sm tracking-wide w-[260px]">
+                                    {!isStarting ? (
+                                        <>
+                                            <span>INGRESAR AHORA</span>
+                                            <Icon name="ArrowRight" size={18} className="group-hover:translate-x-1 transition-transform" />
+                                        </>
+                                    ) : (
+                                        <span className="animate-pulse">Cargando Entorno...</span>
+                                    )}
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                    <div className="absolute bottom-6 text-[10px] font-bold text-[#1B4965]/40 tracking-widest">v2.6.2 Stable • Didac-Click Group</div>
+                </div>
+            );
+        };
 
-            DOMElements.startNormalBtn.addEventListener('click', () => handleStartGame('normal'));
-            DOMElements.startCompetitiveBtn.addEventListener('click', () => handleStartGame('competitivo'));
+        // --- APLICACIÓN PRINCIPAL ---
+        function App() {
+            // Se ha eliminado la API Key harcodeada por seguridad
+            const [apiKey] = useState("AIzaSyAe7FaBXxaPTUPpTIhjFrEP-OFvMbMjgdk");
+            const [showIntro, setShowIntro] = useState(true);
+            const [subject, setSubject] = useState("");
+            const [grade, setGrade] = useState("");
+            const [pedagogy, setPedagogy] = useState(""); 
+            const [strategy, setStrategy] = useState(""); 
+            const [unit, setUnit] = useState("");
+            const [topics, setTopics] = useState("");
+            const [classCount, setClassCount] = useState(5);
+            const [detailLevel, setDetailLevel] = useState("Normal");
+            // isSidebarOpen eliminado, ahora siempre visible
+            const [contextModalOpen, setContextModalOpen] = useState(false);
+            const [modificationModalOpen, setModificationModalOpen] = useState(false);
+            const [contextText, setContextText] = useState("");
+            const [attachedImages, setAttachedImages] = useState([]);
+            const [isLoading, setIsLoading] = useState(false);
+            const [isModifying, setIsModifying] = useState(false); 
+            const [loadingStep, setLoadingStep] = useState(0); 
+            const [generatedPlan, setGeneratedPlan] = useState(null);
+            const [activeTab, setActiveTab] = useState("lunes"); 
+            const [toasts, setToasts] = useState([]);
+            const [templateFile, setTemplateFile] = useState(null);
+            const [libsLoaded, setLibsLoaded] = useState(false);
 
-            DOMElements.viewProgressBtn.addEventListener('click', () => {
-                updateProgressSummary(); 
-                showScreen('progress');
-            });
+            // --- PROTECCIÓN CONTRA CLICK DERECHO Y ATAJOS ---
+            useEffect(() => {
+                const handleContextMenu = (e) => {
+                    e.preventDefault();
+                    // Opcional: Mostrar alerta sutil o simplemente bloquear
+                };
 
-            DOMElements.backToMenuFromProgressBtn.addEventListener('click', () => showScreen('start'));
-            DOMElements.submitAnswerBtn.addEventListener('click', () => checkAnswer(false));
-            DOMElements.backToMenuBtn.addEventListener('click', () => { stopTimer(); showScreen('start'); });
+                const handleKeyDown = (e) => {
+                    // Bloquear F12
+                    if (e.key === 'F12') {
+                        e.preventDefault();
+                        return;
+                    }
+                    // Bloquear Ctrl+Shift+I (DevTools)
+                    if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === 'I') {
+                        e.preventDefault();
+                        return;
+                    }
+                     // Bloquear Ctrl+Shift+J (Consola)
+                     if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === 'J') {
+                        e.preventDefault();
+                        return;
+                    }
+                     // Bloquear Ctrl+Shift+C (Inspector)
+                     if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === 'C') {
+                        e.preventDefault();
+                        return;
+                    }
+                    // Bloquear Ctrl+U (Ver código fuente)
+                    if (e.ctrlKey && e.key.toUpperCase() === 'U') {
+                        e.preventDefault();
+                        return;
+                    }
+                    // Bloquear Ctrl+S (Guardar)
+                    if (e.ctrlKey && e.key.toUpperCase() === 'S') {
+                        e.preventDefault();
+                        return;
+                    }
+                };
+
+                // Bloquear copiado globalmente (excepto en inputs gracias al CSS)
+                const handleCopy = (e) => {
+                    // Verificamos si el elemento activo es un input o textarea
+                    const activeElement = document.activeElement;
+                    const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+                    
+                    if (!isInput) {
+                        e.preventDefault();
+                        addToast("Acción bloqueada por seguridad", "error");
+                    }
+                };
+
+                document.addEventListener('contextmenu', handleContextMenu);
+                document.addEventListener('keydown', handleKeyDown);
+                document.addEventListener('copy', handleCopy);
+
+                return () => {
+                    document.removeEventListener('contextmenu', handleContextMenu);
+                    document.removeEventListener('keydown', handleKeyDown);
+                    document.removeEventListener('copy', handleCopy);
+                };
+            }, []);
+
+
+            const GRADES = ["1ro Secundaria", "2do Secundaria", "3ro Secundaria", "4to Secundaria", "5to Secundaria", "6to Secundaria", "1ro Primaria", "2do Primaria", "3ro Primaria", "4to Primaria", "5to Primaria", "6to Primaria"];
+            const SUBJECTS = ["Lengua Española", "Matemática", "Ciencias Sociales", "Ciencias de la Naturaleza", "Inglés", "Francés", "Ed. Artística", "Ed. Física", "Formación Humana", "Informática"];
+            const MODELS = ["Enfoque por Competencias", "Tradicional", "Constructivista", "Conductista", "Socio-Crítico"];
+            const STRATEGIES = ["Unidad de Aprendizaje", "Proyecto de Investigación", "Proyecto de Aula", "Eje Temático", "ABP", "Indagación Dialógica", "Estudio de Casos"];
+            const DETAIL_LEVELS = ["Breve", "Normal", "Detallada"]; 
             
-            DOMElements.editNameBtn.addEventListener('click', () => {
-                DOMElements.editNameInput.value = gameState.userName;
-                DOMElements.editNameContainer.classList.remove('hidden');
-                DOMElements.editNameInput.focus();
-            });
+            // MENSAJES DE CARGA PARA GENERACIÓN Y MODIFICACIÓN
+            const LOADING_MSGS = ["Conectando...", "Analizando...", "Estructurando...", "Redactando...", "Finalizando..."];
+            const MODIFYING_MSGS = ["Procesando solicitud...", "Revisando plan actual...", "Aplicando ajustes...", "Refinando contenido...", "Finalizando cambios..."];
 
-            DOMElements.saveNewNameBtn.addEventListener('click', () => {
-                const newName = DOMElements.editNameInput.value.trim().split(' ')[0];
-                if (newName) {
-                    gameState.userName = newName;
-                    saveGameData();
-                    updateAllUserNames();
-                    DOMElements.editNameContainer.classList.add('hidden');
+            const ALL_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+            const activeDays = ALL_DAYS.slice(0, classCount);
+            const defaultDay = { tema: "", inicio: "", desarrollo: "", cierre: "", materiales_docente: "", recursos_alumno: "", tarea: "" };
+            const textareasRef = useRef({});
+
+            const addToast = (msg, type = 'info') => { const id = Date.now(); setToasts(prev => [...prev, { id, message: msg, type }]); };
+            const removeToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
+
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, []);
+            const adjustHeight = (e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; };
+            useEffect(() => { if (generatedPlan) Object.values(textareasRef.current).forEach(el => { if(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }}); }, [generatedPlan, activeTab]);
+
+            const fetchWithRetry = async (url, options, retries = 3) => {
+                for (let i = 0; i < retries; i++) {
+                    try { const res = await fetch(url, options); if (!res.ok) throw new Error(`HTTP ${res.status}`); return res; } 
+                    catch (err) { if (i === retries - 1) throw err; addToast(`Conexión inestable...`, 'loading'); await new Promise(r => setTimeout(r, 2000)); }
                 }
-            });
+            };
+
+            const generatePlan = async (modificationRequest = null) => {
+                if (!apiKey) { addToast("Falta API Key", 'error'); return; }
+                if (!modificationRequest && (!subject || !grade || !unit || !topics)) { addToast("Complete todos los campos de configuración.", 'error'); return; }
+                
+                setIsLoading(true); 
+                setIsModifying(!!modificationRequest); // DETECTAR SI ES MODIFICACIÓN
+                setLoadingStep(0);
+                
+                if (!modificationRequest) setGeneratedPlan(null); 
+                
+                // Usamos la misma longitud para ambos arrays de mensajes, por lo que el intervalo funciona igual
+                const stepInterval = setInterval(() => setLoadingStep(p => (p < LOADING_MSGS.length - 1 ? p + 1 : p)), 2500);
+                
+                const detailInstructions = { "Breve": "Conciso. Viñetas cortas. Solo 1 actividad principal.", "Normal": "Equilibrado. Incluye tiempos. Solo 1 actividad principal.", "Detallada": "Exhaustivo. Paso a paso. Solo 1 actividad principal." };
+                let prompt = "";
+                if (modificationRequest) {
+                    prompt = `EDITOR EXPERTO. Modifica el plan: "${modificationRequest}". PLAN ACTUAL: ${JSON.stringify(generatedPlan)}. Salida JSON: { "plan": { ... } }. NO USES ASTERISCOS NI NEGRITAS.`;
+                } else {
+                    prompt = `Rol: Docente Experto. Planifica ${classCount} días (${activeDays.join(", ")}) para: ${grade} | ${subject} | ${pedagogy} | ${strategy} | ${unit} | ${topics} | Nivel: ${detailLevel} (${detailInstructions[detailLevel]}) | Contexto: ${contextText}.
+                    REGLAS CRÍTICAS: 1. Clase ESTRICTAMENTE 60 min. 2. Desarrollo SOLO 1 actividad principal. 3. NO usar asteriscos (*) ni negritas (**). Texto plano. 4. Tiempos variados.
+                    Salida JSON Estricta: { "plan": { "lunes": { "tema": "", "inicio": "", "desarrollo": "", "cierre": "", "materiales_docente": "", "recursos_alumno": "", "tarea": "" }, ... } }`;
+                }
+
+                const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                if (attachedImages.length > 0) payload.contents[0].parts[0].text += "\n[IMÁGENES ADJUNTAS]";
+
+                try {
+                    const res = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error.message);
+                    let jsonText = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').replace(/\*/g, '').replace(/__/g, '');
+                    const parsed = JSON.parse(jsonText);
+                    const normalized = {};
+                    activeDays.forEach(day => {
+                        const key = day.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        const foundKey = Object.keys(parsed.plan || parsed).find(k => k.toLowerCase().includes(key.substring(0,3)));
+                        normalized[key] = foundKey ? (parsed.plan ? parsed.plan[foundKey] : parsed[foundKey]) : defaultDay;
+                    });
+                    clearInterval(stepInterval); setLoadingStep(LOADING_MSGS.length - 1);
+                    setTimeout(() => { setGeneratedPlan(normalized); setActiveTab("lunes"); setIsLoading(false); setIsModifying(false); addToast(modificationRequest ? "Plan modificado" : "Plan generado", 'success'); }, 800);
+                } catch (error) { clearInterval(stepInterval); addToast("Error de conexión. Reintentando...", 'error'); setIsLoading(false); setIsModifying(false); }
+            };
+
+            const exportWord = () => {
+                if (!generatedPlan || !templateFile) { addToast("Falta plan o plantilla.", 'error'); return; }
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const zip = new window.PizZip(evt.target.result);
+                        const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+                        const dataMap = { asignatura: subject, unidad: unit, modelo: pedagogy, estrategia: strategy };
+                        Object.keys(generatedPlan).forEach(k => {
+                            const d = generatedPlan[k];
+                            dataMap[`tema_${k}`] = d.tema;
+                            ['inicio','desarrollo','cierre','materiales_docente','recursos_alumno','tarea'].forEach(f => dataMap[`${f}_${k}`] = d[f]);
+                        });
+                        ALL_DAYS.map(d => d.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")).forEach(k => { if (!generatedPlan[k]) { dataMap[`tema_${k}`] = ""; ['inicio','desarrollo','cierre','materiales_docente','recursos_alumno','tarea'].forEach(f => dataMap[`${f}_${k}`] = ""); } });
+                        doc.render(dataMap);
+                        window.saveAs(doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }), `Plan_${subject}.docx`);
+                        addToast("Archivo descargado", 'success');
+                    } catch (e) { addToast("Error en plantilla", 'error'); }
+                };
+                reader.readAsBinaryString(templateFile);
+            };
+
+            const handlePlanChange = (key, field, val) => setGeneratedPlan(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } }));
+            if (showIntro) return <IntroScreen onStart={() => setShowIntro(false)} />;
+
+            return (
+                <div className="flex h-screen w-full bg-white text-slate-800 relative">
+                    <div className="toast-container">{toasts.map(t => <Toast key={t.id} message={t.message} type={t.type} onClose={() => removeToast(t.id)} />)}</div>
+                    <ContextModal isOpen={contextModalOpen} onClose={() => setContextModalOpen(false)} contextText={contextText} setContextText={setContextText} attachedImages={attachedImages} setAttachedImages={setAttachedImages} />
+                    <ModificationModal isOpen={modificationModalOpen} onClose={() => setModificationModalOpen(false)} onApply={(req) => generatePlan(req)} />
+
+                    {/* SIDEBAR SIEMPRE VISIBLE - ESPACIO OPTIMIZADO PARA EVITAR SCROLL */}
+                    <aside className="w-80 bg-white border-r border-gray-100 flex flex-col shrink-0 z-40 shadow-xl h-full relative">
+                        <div className="p-4 flex-1 overflow-y-auto space-y-3">
+                            <div className="flex items-center gap-3 mb-2 px-1">
+                                <div className="bg-[#1B4965] p-2 rounded-lg text-white"><Icon name="Layers" size={20} /></div>
+                                <span className="text-lg font-black text-[#1B4965] tracking-tight font-montserrat">DIDAC-CLICK</span>
+                            </div>
+
+                            <div className="space-y-3">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1 px-1">Configuración General</span>
+                                <CustomSelect placeholder="Seleccionar Grado" value={grade} onChange={setGrade} options={GRADES} />
+                                <CustomSelect placeholder="Seleccionar Asignatura" value={subject} onChange={setSubject} options={SUBJECTS} />
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <div className="space-y-3">
+                                    <CustomSelect placeholder="Modelo Pedagógico" value={pedagogy} onChange={setPedagogy} options={MODELS} />
+                                    <CustomSelect placeholder="Estrategia de Enseñanza" value={strategy} onChange={setStrategy} options={STRATEGIES} />
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center px-1">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Días a Planificar</span>
+                                    <div className="flex bg-gray-50 rounded-lg p-1 border border-gray-100">
+                                        {[1,2,3,4,5].map(n => (<button key={n} onClick={() => setClassCount(n)} className={`w-8 h-8 flex items-center justify-center rounded-md text-xs font-bold transition-all ${classCount === n ? 'bg-[#1B4965] text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>{n}</button>))}
+                                    </div>
+                                </div>
+                                <input value={unit} onChange={e => setUnit(e.target.value)} className="input-compact font-semibold text-[#1B4965]" placeholder="Nombre de la Unidad de Aprendizaje..." />
+                                <div className="pt-1"><CustomSelect placeholder="Nivel de Profundidad" value={detailLevel} onChange={setDetailLevel} options={DETAIL_LEVELS} icon="Layers" /></div>
+                                <textarea value={topics} onChange={e => setTopics(e.target.value)} className="input-compact h-10 pt-2" placeholder="Lista de temas a cubrir..." />
+                                <button onClick={() => setContextModalOpen(true)} className="input-compact justify-between hover:border-[#1B4965] transition-colors cursor-pointer group flex items-center">
+                                    <div className="flex items-center gap-2 overflow-hidden text-slate-500 group-hover:text-[#1B4965]"><Icon name="Paperclip" size={14} /><span className="truncate">{contextText || attachedImages.length > 0 ? `Contexto (${attachedImages.length})` : "Adjuntar Recursos / Contexto"}</span></div>
+                                    {(contextText || attachedImages.length > 0) && <div className="w-2 h-2 rounded-full bg-[#3A9D9D]"></div>}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-white space-y-3">
+                            <button onClick={() => generatePlan()} disabled={isLoading} className="btn-sidebar bg-[#1B4965] hover:bg-[#153a51] text-white shadow-lg shadow-blue-900/10 disabled:opacity-70 disabled:cursor-wait">
+                                <Icon name="Sparkles" size={16} /> GENERAR PLANIFICACIÓN
+                            </button>
+                            <div className="flex flex-col gap-2 w-full">
+                                <label className="btn-sidebar bg-white border border-gray-200 text-slate-500 hover:border-[#3A9D9D] hover:text-[#3A9D9D] px-2 truncate cursor-pointer w-full"><input type="file" accept=".docx" onChange={e => setTemplateFile(e.target.files[0])} className="hidden" /><span className="truncate">{templateFile ? "Plantilla Cargada Correctamente" : "Subir Plantilla Word (.docx)"}</span></label>
+                                <button onClick={exportWord} disabled={!generatedPlan || !templateFile} className="btn-sidebar bg-white border border-gray-200 text-slate-500 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 disabled:opacity-50 w-full"><Icon name="Download" size={16} /> Descargar Word</button>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <main className="flex-1 flex flex-col relative bg-[#F9FAFB] overflow-hidden transition-all duration-300">
+                        {isLoading && (
+                            <div className="absolute inset-0 z-30 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in">
+                                {/* UNIFICADA LA ANIMACIÓN: SOLO CAMBIA EL TEXTO (ARRAY DE MENSAJES) */}
+                                <div className="w-64 space-y-4 text-center">
+                                    <div className="space-y-1">
+                                        <h3 className="text-xs font-bold text-[#1B4965] uppercase tracking-wider animate-pulse">
+                                            {isModifying ? MODIFYING_MSGS[loadingStep] : LOADING_MSGS[loadingStep]}
+                                        </h3>
+                                        <div className="h-0.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                            <div className="h-full bg-[#3A9D9D] transition-all duration-700 ease-out" style={{ width: `${((loadingStep + 1) / LOADING_MSGS.length) * 100}%` }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {!generatedPlan && !isLoading ? (
+                            <div className="flex-1 flex flex-col items-center justify-center p-10 select-none opacity-0 animate-fade-in">
+                                <div className="mb-8 text-center space-y-3">
+                                    <h2 className="text-2xl font-black text-[#1B4965] tracking-tight font-montserrat">Planificador Docente</h2>
+                                    <p className="text-sm text-gray-400 font-medium max-w-sm mx-auto leading-relaxed">Configure su planificación en el panel lateral para comenzar.</p>
+                                </div>
+                                <div className="w-16 h-1 bg-gray-200 rounded-full mb-8"></div>
+                                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em]">Powered by DIDAC-CLICK GROUP</span>
+                            </div>
+                        ) : (
+                            generatedPlan && (
+                                <>
+                                    <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20 flex gap-2 w-full justify-center pointer-events-none">
+                                        <div className="bg-white/90 backdrop-blur border border-gray-200 p-1.5 rounded-full shadow-lg shadow-gray-200/50 flex gap-1 pointer-events-auto">
+                                            {activeDays.map(day => {
+                                                const key = day.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                                return (<button key={key} onClick={() => setActiveTab(key)} className={`w-10 h-10 flex items-center justify-center rounded-full transition-all ${activeTab === key ? 'bg-[#1B4965] text-white shadow-md font-bold scale-110' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50 text-xs font-medium'}`}>{day.substring(0,1)}</button>);
+                                            })}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* BOTON DE MODIFICACION REDONDO ESTILO BURBUJA */}
+                                    <div className="absolute top-6 right-8 z-20">
+                                        <button onClick={() => setModificationModalOpen(true)} className="w-12 h-12 flex items-center justify-center bg-white text-[#1B4965] border border-gray-200 rounded-full shadow-lg hover:border-[#1B4965] hover:scale-105 transition-all group" title="Modificar con el Sistema">
+                                            <Icon name="Edit3" size={20} className="group-hover:rotate-12 transition-transform" />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth pt-28 relative">
+                                        <div className="max-w-[98%] mx-auto pb-20">
+                                            {activeDays.map(day => {
+                                                const key = day.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                                if (key !== activeTab) return null;
+                                                const data = generatedPlan[key] || defaultDay;
+                                                return (
+                                                    <div key={key} className="animate-scale-in space-y-5">
+                                                        <div className="bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
+                                                            <div className="px-4 py-2 border-b border-gray-50 bg-gray-50/50 rounded-t-lg"><span className="text-xs font-bold text-[#3A9D9D] uppercase tracking-wider">Intención Pedagógica / Tema</span></div>
+                                                            <textarea className="input-compact font-bold text-[#1B4965] text-base py-3 px-4 h-auto min-h-[50px] border-0 focus:ring-0 bg-transparent no-horizontal-scroll" value={data.tema} onChange={(e) => { handlePlanChange(key, 'tema', e.target.value); adjustHeight(e); }} placeholder="Tema principal..." rows={1} />
+                                                        </div>
+                                                        <div className="space-y-3">
+                                                            {['Inicio', 'Desarrollo', 'Cierre'].map((section) => (
+                                                                <div key={section} className="relative bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group hover:border-[#3A9D9D]/30 transition-colors">
+                                                                    <div className="px-4 py-2 bg-gray-50/30 border-b border-gray-50 flex justify-between items-center"><span className="text-xs font-bold text-gray-400 uppercase tracking-wider group-hover:text-[#1B4965] transition-colors">{section}</span></div>
+                                                                    <textarea ref={el => textareasRef.current[`${key}-${section}`] = el} className="input-compact min-h-[80px] resize-none no-horizontal-scroll border-0 focus:ring-0 py-3 px-4 text-sm leading-relaxed" value={data[section.toLowerCase()]} onChange={(e) => { handlePlanChange(key, section.toLowerCase(), e.target.value); adjustHeight(e); }} onInput={adjustHeight} rows={1} />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                                                            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"><div className="px-4 py-2 bg-gray-50/30 border-b border-gray-50"><span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Recursos Docente</span></div><textarea className="input-compact no-horizontal-scroll border-0 focus:ring-0 py-3 px-4 text-sm" rows={2} value={data.materiales_docente} onChange={(e) => handlePlanChange(key, 'materiales_docente', e.target.value)} onInput={adjustHeight} /></div>
+                                                            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"><div className="px-4 py-2 bg-gray-50/30 border-b border-gray-50"><span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Recursos Estudiante</span></div><textarea className="input-compact no-horizontal-scroll border-0 focus:ring-0 py-3 px-4 text-sm" rows={2} value={data.recursos_alumno} onChange={(e) => handlePlanChange(key, 'recursos_alumno', e.target.value)} onInput={adjustHeight} /></div>
+                                                            <div className="md:col-span-2 bg-red-50/10 rounded-xl border border-red-50 shadow-sm overflow-hidden hover:border-red-100 transition-colors"><div className="px-4 py-2 bg-red-50/20 border-b border-red-50"><span className="text-xs font-bold text-[#C00000] uppercase tracking-wider">Evaluación / Tarea</span></div><textarea className="input-compact bg-transparent border-0 focus:ring-0 py-3 px-4 text-sm no-horizontal-scroll" rows={2} value={data.tarea} onChange={(e) => handlePlanChange(key, 'tarea', e.target.value)} onInput={adjustHeight} /></div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </>
+                            )
+                        )}
+                    </main>
+                </div>
+            );
         }
-        
-        // --- INICIAR LA APP ---
-        document.addEventListener('DOMContentLoaded', () => {
-            initFirebase();
-            setupEventListeners();
-        });
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
-
-

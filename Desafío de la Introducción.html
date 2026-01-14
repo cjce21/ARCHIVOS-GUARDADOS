@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LabReport: El Desafío de la Introducción</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel (para JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { overscroll-behavior-y: none; }
+        
+        /* Animaciones */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
+        
+        @keyframes pulse-border { 0% { border-color: rgba(56, 189, 248, 0.5); } 50% { border-color: rgba(56, 189, 248, 1); } 100% { border-color: rgba(56, 189, 248, 0.5); } }
+        .animate-pulse-border { animation: pulse-border 2s infinite; }
+
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+        .animate-confetti { animation: fall 3s linear infinite; }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white select-none">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- DATOS DEL JUEGO ---
+        const levels = [
+            {
+                student: "Alejandro",
+                topic: "Fotosíntesis y Luz",
+                icon: "🌿",
+                options: [
+                    {
+                        id: "A",
+                        text: "En este trabajo vamos a poner una planta al sol y otra en la sombra. Quiero ver qué pasa porque me gustan mucho las plantas y creo que la luz es importante para que crezcan verdes.",
+                        type: "incorrect",
+                        feedback: "Muy informal. Falta hablar del 'Tema Grande' (Presentación) y 'La Misión' es poco clara ('ver qué pasa')."
+                    },
+                    {
+                        id: "B",
+                        text: "La fotosíntesis es el proceso vital mediante el cual las plantas convierten luz en energía. Este experimento se centrará en la planta Elodea bajo luz artificial. El objetivo es medir la producción de oxígeno en función de la distancia de la luz.",
+                        type: "correct",
+                        feedback: "¡Excelente! Tiene el Tema Grande (qué es la fotosíntesis), la Lupa (Elodea/luz artificial) y la Misión (medir oxígeno)."
+                    },
+                    {
+                        id: "C",
+                        text: "El objetivo de este experimento es medir cuánto oxígeno produce una planta. Para ello usaremos agua, bicarbonato y una lámpara. Anotaremos los resultados en una tabla cada 5 minutos.",
+                        type: "incomplete",
+                        feedback: "Directo al grano, pero le falta el 'Tema Grande'. No explica qué es la fotosíntesis primero."
+                    }
+                ]
+            },
+            {
+                student: "Mía",
+                topic: "Densidad de Líquidos",
+                icon: "💧",
+                options: [
+                    {
+                        id: "A",
+                        text: "La densidad es una propiedad física que varía entre sustancias. Analizaremos el comportamiento de miel, agua y aceite en una misma columna. El propósito es demostrar cómo los líquidos se estratifican según su densidad sin mezclarse.",
+                        type: "correct",
+                        feedback: "¡Perfecto! Explica el tema, usa la lupa en esos líquidos específicos y define la misión."
+                    },
+                    {
+                        id: "B",
+                        text: "La densidad es muy importante en la física y química. Arquímedes la estudió hace mucho tiempo. Hay líquidos que pesan más que otros y por eso los barcos flotan en el mar.",
+                        type: "incorrect",
+                        feedback: "Esto parece historia. No usa la 'Lupa' en el experimento de hoy ni dice cuál es la 'Misión'."
+                    },
+                    {
+                        id: "C",
+                        text: "Vamos a echar miel, agua y aceite en un vaso. El objetivo es ver cómo se quedan flotando uno encima del otro para hacer una torre de colores.",
+                        type: "incomplete",
+                        feedback: "Tiene Lupa y Misión, pero le falta el 'Tema Grande' (explicar qué es la densidad)."
+                    }
+                ]
+            },
+            {
+                student: "Mayka",
+                topic: "Reacciones Químicas (Volcán)",
+                icon: "🌋",
+                options: [
+                    {
+                        id: "A",
+                        text: "Las reacciones ácido-base son cambios químicos fundamentales. En este estudio usaremos vinagre y bicarbonato de sodio en un modelo de volcán. El objetivo es observar la liberación de CO2 como producto de la reacción.",
+                        type: "correct",
+                        feedback: "Estructura impecable: Tema Grande (reacciones), Lupa (vinagre/bicarbonato) y Misión (observar CO2)."
+                    },
+                    {
+                        id: "B",
+                        text: "El experimento trata sobre volcanes. Los volcanes son peligrosos y expulsan lava. Nosotros haremos uno de mentira para ver la lava roja salir por arriba.",
+                        type: "incorrect",
+                        feedback: "Desviado. Habla de volcanes reales en lugar del tema químico. Falta ciencia."
+                    },
+                    {
+                        id: "C",
+                        text: "El propósito es demostrar que el vinagre y el bicarbonato hacen burbujas. Usaremos una botella de plástico y colorante rojo para que parezca real.",
+                        type: "incomplete",
+                        feedback: "Empieza directamente con la misión. Se saltó la explicación del 'Tema Grande'."
+                    }
+                ]
+            },
+            {
+                student: "Suzette",
+                topic: "Conductividad Eléctrica",
+                icon: "⚡",
+                options: [
+                    {
+                        id: "A",
+                        text: "La electricidad viaja por cables. Vamos a probar si viaja por el agua con sal. El objetivo es que la bombilla se encienda.",
+                        type: "incomplete",
+                        feedback: "Un poco simple. Tiene los elementos pero la explicación del 'Tema Grande' es muy básica."
+                    },
+                    {
+                        id: "B",
+                        text: "La conductividad es la capacidad de la materia para permitir el flujo de cargas. Este informe evalúa soluciones salinas de diferente concentración. El objetivo es relacionar la cantidad de sal con la intensidad lumínica del circuito.",
+                        type: "correct",
+                        feedback: "¡Muy bien! Define el concepto (Tema Grande), acota el estudio (Lupa) y marca el objetivo (Misión)."
+                    },
+                    {
+                        id: "C",
+                        text: "En este laboratorio conectaremos cables a una batería y los meteremos en agua. Es peligroso tocar la electricidad con las manos mojadas, así que tendremos cuidado.",
+                        type: "incorrect",
+                        feedback: "Esto es una norma de seguridad, no una introducción. No dice qué queremos descubrir."
+                    }
+                ]
+            },
+            {
+                student: "Andrea",
+                topic: "Leyes de Newton",
+                icon: "🍎",
+                options: [
+                    {
+                        id: "A",
+                        text: "Isaac Newton fue un físico muy famoso que vio caer una manzana. En este trabajo hablaremos de sus leyes y de cómo son importantes para la física moderna y los cohetes.",
+                        type: "incorrect",
+                        feedback: "Demasiada biografía. No usa la 'Lupa' para decir qué experimento haremos hoy."
+                    },
+                    {
+                        id: "B",
+                        text: "La dinámica estudia las causas del movimiento. Nos enfocaremos en la Segunda Ley de Newton utilizando un carrito y diversas masas. El propósito es verificar matemáticamente la relación F=m*a.",
+                        type: "correct",
+                        feedback: "¡Exacto! Presenta la física, pone la Lupa en la 2ª Ley con el carrito y define la Misión."
+                    },
+                    {
+                        id: "C",
+                        text: "El objetivo es empujar un carrito con diferentes pesos. Veremos que cuanto más pesa, más cuesta empujarlo, lo cual demuestra la fórmula de la fuerza.",
+                        type: "incomplete",
+                        feedback: "Tiene Misión y Lupa, pero le falta la presentación teórica inicial (Tema Grande)."
+                    }
+                ]
+            },
+            {
+                student: "Jeycob",
+                topic: "Germinación de Semillas",
+                icon: "🌱",
+                options: [
+                    {
+                        id: "A",
+                        text: "Las plantas nacen de semillas. Vamos a plantar frijoles en algodón mojado. El objetivo es tener una planta grande para el final del curso.",
+                        type: "incorrect",
+                        feedback: "La misión es personal ('tener una planta'), no científica ('descubrir algo')."
+                    },
+                    {
+                        id: "B",
+                        text: "La germinación es el proceso de desarrollo del embrión. Limitaremos el estudio a semillas de frijol en ausencia de luz. El objetivo es determinar si la luz solar es indispensable para el crecimiento inicial.",
+                        type: "correct",
+                        feedback: "¡Correcto! Define qué es germinar, usa la Lupa en frijoles sin luz, y plantea la Misión."
+                    },
+                    {
+                        id: "C",
+                        text: "Investigaremos si los frijoles crecen sin luz. Pondremos unos en una caja y otros en la ventana para comparar.",
+                        type: "incomplete",
+                        feedback: "Falta el 'Tema Grande'. Salta directamente al experimento."
+                    }
+                ]
+            },
+            {
+                student: "Juan",
+                topic: "El Sistema Solar",
+                icon: "🪐",
+                options: [
+                    {
+                        id: "A",
+                        text: "El universo es infinito y tiene muchas galaxias. Nuestro sistema solar tiene 8 planetas. En este trabajo haremos una maqueta con bolas de poliestireno.",
+                        type: "incorrect",
+                        feedback: "Es una descripción de una manualidad, no una introducción científica."
+                    },
+                    {
+                        id: "B",
+                        text: "El sistema solar está compuesto por cuerpos celestes que orbitan al sol. Este modelo a escala representará las distancias relativas entre planetas. El propósito es visualizar la magnitud del vacío espacial.",
+                        type: "correct",
+                        feedback: "Bien estructurado. Presenta el sistema, pone la Lupa en las distancias y define la Misión educativa."
+                    },
+                    {
+                        id: "C",
+                        text: "El objetivo es aprenderse los nombres de los planetas en orden: Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Urano y Neptuno.",
+                        type: "incomplete",
+                        feedback: "Es solo un objetivo de memoria, le falta el contexto y la explicación."
+                    }
+                ]
+            },
+            {
+                student: "Maycol",
+                topic: "Estados de la Materia",
+                icon: "🧊",
+                options: [
+                    {
+                        id: "A",
+                        text: "La materia cambia de estado con la temperatura. Observaremos la fusión del hielo y la evaporación del agua al calentarla. El objetivo es graficar la curva de calentamiento del agua.",
+                        type: "correct",
+                        feedback: "Excelente. Presenta el tema físico, pone la Lupa en el agua/hielo y define la Misión."
+                    },
+                    {
+                        id: "B",
+                        text: "El agua puede ser hielo, líquido o vapor. Vamos a calentar hielo en un vaso de precipitados hasta que hierva todo.",
+                        type: "incomplete",
+                        feedback: "Describe los pasos, pero le falta la formalidad del 'Tema Grande' y una Misión clara."
+                    },
+                    {
+                        id: "C",
+                        text: "En este experimento jugaremos con hielo y fuego. Es divertido ver cómo el hielo desaparece y se convierte en humo.",
+                        type: "incorrect",
+                        feedback: "Usa palabras no científicas ('humo' en vez de vapor) y enfoque de juego ('jugaremos')."
+                    }
+                ]
+            }
+        ];
+
+        // --- COMPONENTES UI ---
+
+        const ConceptMap = ({ onComplete }) => {
+            const [step, setStep] = useState(0);
+
+            return (
+                <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto p-4 animate-fadeIn">
+                    <h2 className="text-3xl font-bold text-cyan-400 mb-2">¡Vamos a escribir una Introducción!</h2>
+                    <p className="text-slate-300 mb-8 text-center max-w-2xl text-lg">
+                        Una introducción es como invitar a un amigo a una aventura. Para que entienda el plan, tienes que contarle 3 cosas importantes:
+                    </p>
+
+                    <div className="relative w-full h-[450px] bg-slate-800/50 rounded-2xl border border-slate-700 p-8 flex items-center justify-center overflow-hidden">
+                        
+                        {/* Central Node */}
+                        <div className={`absolute transition-all duration-700 ${step >= 1 ? 'top-10 scale-75' : 'top-1/2 -translate-y-1/2 scale-110'}`}>
+                            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-2xl shadow-xl border border-blue-400 z-10 relative text-center w-64">
+                                <div className="text-4xl mb-2">📝</div>
+                                <h3 className="text-xl font-bold text-white">INTRODUCCIÓN</h3>
+                                <p className="text-xs text-blue-200 mt-1">El plan de tu experimento</p>
+                            </div>
+                        </div>
+
+                        {/* Branches */}
+                        {step >= 1 && (
+                            <div className="absolute w-full h-full top-0 left-0">
+                                {/* Lines using SVG */}
+                                <svg className="w-full h-full absolute top-0 left-0 pointer-events-none">
+                                    <path d="M 50% 15% C 50% 50%, 20% 50%, 20% 60%" fill="none" stroke="#60a5fa" strokeWidth="3" className="animate-pulse" strokeDasharray="10"/>
+                                    <path d="M 50% 15% C 50% 50%, 50% 50%, 50% 60%" fill="none" stroke="#60a5fa" strokeWidth="3" className="animate-pulse" strokeDasharray="10"/>
+                                    <path d="M 50% 15% C 50% 50%, 80% 50%, 80% 60%" fill="none" stroke="#60a5fa" strokeWidth="3" className="animate-pulse" strokeDasharray="10"/>
+                                </svg>
+
+                                {/* Nodes */}
+                                <div className="absolute top-[60%] left-[5%] w-[30%] animate-fadeIn" style={{animationDelay: '0.2s'}}>
+                                    <div className="bg-slate-700 p-4 rounded-xl border-l-4 border-yellow-400 shadow-lg hover:scale-105 transition-transform cursor-help group h-40 flex flex-col justify-between">
+                                        <div>
+                                            <h4 className="font-bold text-yellow-400 mb-1 text-lg">1. El Tema Grande</h4>
+                                            <p className="text-xs text-slate-300 font-bold uppercase mb-2">(Presentación)</p>
+                                            <p className="text-sm text-white">Es el saludo. Cuentas de qué trata el tema en general para que todos entiendan.</p>
+                                        </div>
+                                        <div className="bg-black/40 p-2 rounded text-xs text-yellow-200 mt-2">
+                                            Ej: "Las plantas son seres vivos que necesitan sol..."
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="absolute top-[60%] left-[35%] w-[30%] animate-fadeIn" style={{animationDelay: '0.6s'}}>
+                                    <div className="bg-slate-700 p-4 rounded-xl border-l-4 border-cyan-400 shadow-lg hover:scale-105 transition-transform cursor-help group h-40 flex flex-col justify-between">
+                                        <div>
+                                            <h4 className="font-bold text-cyan-400 mb-1 text-lg">2. La Lupa</h4>
+                                            <p className="text-xs text-slate-300 font-bold uppercase mb-2">(Delimitación)</p>
+                                            <p className="text-sm text-white">Es el detalle. Dices qué cosita específica vas a investigar hoy.</p>
+                                        </div>
+                                        <div className="bg-black/40 p-2 rounded text-xs text-cyan-200 mt-2">
+                                            Ej: "Hoy solo veremos frijoles en una caja oscura."
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="absolute top-[60%] right-[5%] w-[30%] animate-fadeIn" style={{animationDelay: '1s'}}>
+                                    <div className="bg-slate-700 p-4 rounded-xl border-l-4 border-emerald-400 shadow-lg hover:scale-105 transition-transform cursor-help group h-40 flex flex-col justify-between">
+                                        <div>
+                                            <h4 className="font-bold text-emerald-400 mb-1 text-lg">3. La Misión</h4>
+                                            <p className="text-xs text-slate-300 font-bold uppercase mb-2">(Propósito)</p>
+                                            <p className="text-sm text-white">Es la meta. Dices qué quieres descubrir al final.</p>
+                                        </div>
+                                        <div className="bg-black/40 p-2 rounded text-xs text-emerald-200 mt-2">
+                                            Ej: "Queremos saber si el frijol muere sin luz."
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step Controls Text */}
+                        <div className="absolute bottom-4 text-slate-400 text-sm animate-pulse">
+                            {step === 0 && "Haz clic para ver las pistas..."}
+                            {step === 1 && "Lee las 3 partes y memorízalas..."}
+                        </div>
+                    </div>
+
+                    <button 
+                        onClick={() => {
+                            if(step === 0) setStep(1);
+                            else onComplete();
+                        }}
+                        className="mt-8 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold py-3 px-10 rounded-full shadow-lg transform transition hover:scale-105 flex items-center gap-2"
+                    >
+                        {step === 0 ? <span>¡Enséñame! <i className="fas fa-magic ml-1"></i></span> : <span>¡Entendido, a jugar! <i className="fas fa-gamepad ml-1"></i></span>}
+                    </button>
+                </div>
+            );
+        };
+
+        const Confetti = () => (
+            <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden flex justify-center">
+                {[...Array(50)].map((_, i) => (
+                    <div key={i} className="absolute top-0 animate-confetti"
+                        style={{
+                            left: `${Math.random() * 100}%`,
+                            animationDelay: `${Math.random() * 2}s`,
+                            backgroundColor: ['#ff0', '#f00', '#0f0', '#00f', '#f0f'][Math.floor(Math.random() * 5)],
+                            width: '10px', height: '10px',
+                            transform: `rotate(${Math.random() * 360}deg)`
+                        }}
+                    />
+                ))}
+            </div>
+        );
+
+        // --- APP PRINCIPAL ---
+        function App() {
+            const [gameState, setGameState] = useState('start'); // start, learning, playing, victory
+            const [currentLevel, setCurrentLevel] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [showFeedback, setShowFeedback] = useState(false);
+
+            const handleStart = () => setGameState('learning');
+            const handleFinishLearning = () => setGameState('playing');
+
+            const handleOptionSelect = (option) => {
+                if (showFeedback) return;
+                setSelectedOption(option);
+                setShowFeedback(true);
+                if (option.type === 'correct') {
+                    setScore(prev => prev + 1);
+                }
+            };
+
+            const nextLevel = () => {
+                setShowFeedback(false);
+                setSelectedOption(null);
+                if (currentLevel + 1 < levels.length) {
+                    setCurrentLevel(prev => prev + 1);
+                } else {
+                    setGameState('victory');
+                }
+            };
+
+            const restartGame = () => {
+                setCurrentLevel(0);
+                setScore(0);
+                setShowFeedback(false);
+                setSelectedOption(null);
+                setGameState('start');
+            };
+
+            const currentData = levels[currentLevel];
+
+            // RENDER: PANTALLA DE INICIO
+            if (gameState === 'start') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black font-sans text-white flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                        {/* Background blobs for realistic feel */}
+                        <div className="absolute top-20 left-20 w-32 h-32 border-4 border-cyan-500/20 rounded-full animate-pulse"></div>
+                        <div className="absolute bottom-20 right-20 w-48 h-48 border-4 border-emerald-500/20 rounded-lg rotate-12 animate-pulse-border"></div>
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+                        
+                        <div className="z-10 text-center space-y-6 max-w-2xl backdrop-blur-sm bg-white/5 p-12 rounded-3xl border border-white/10 shadow-2xl animate-fadeIn">
+                            <div className="text-7xl mb-4 animate-float">📝</div>
+                            <div>
+                                <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
+                                    El Desafío de la Introducción
+                                </h1>
+                                <div className="flex flex-wrap justify-center gap-4 text-sm md:text-lg text-cyan-300 font-light tracking-widest uppercase">
+                                    <span>Presentación</span>
+                                    <span className="text-slate-600">•</span>
+                                    <span>Delimitación</span>
+                                    <span className="text-slate-600">•</span>
+                                    <span>Propósito</span>
+                                </div>
+                            </div>
+                            
+                            <button onClick={handleStart} className="mt-8 group relative inline-flex items-center justify-center px-12 py-4 text-xl font-bold text-white transition-all duration-200 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-full hover:scale-105 shadow-lg shadow-cyan-500/20">
+                                <span>Iniciar Análisis</span>
+                                <i className="fas fa-search ml-3 group-hover:scale-110 transition-transform"></i>
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // RENDER: FASE DE APRENDIZAJE
+            if (gameState === 'learning') {
+                return (
+                    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+                        <ConceptMap onComplete={handleFinishLearning} />
+                    </div>
+                );
+            }
+
+            // RENDER: PANTALLA DE VICTORIA
+            if (gameState === 'victory') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 text-white">
+                        <Confetti />
+                        <div className="bg-white/10 backdrop-blur-lg border border-white/20 p-12 rounded-3xl shadow-2xl text-center max-w-lg w-full animate-fadeIn">
+                            <div className="text-8xl mb-6 animate-bounce">🏆</div>
+                            <h1 className="text-4xl font-extrabold mb-4">¡Clase Completada!</h1>
+                            <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-6">
+                                {score} / {levels.length}
+                            </div>
+                            <p className="text-indigo-200 mb-8 text-lg">
+                                {score === levels.length ? "¡Eres un maestro de la redacción científica!" : "Has hecho un buen trabajo ayudando a tus compañeros."}
+                            </p>
+                            <button onClick={restartGame} className="bg-white text-purple-900 font-bold py-3 px-8 rounded-full hover:bg-purple-100 transition shadow-xl">
+                                Volver a Empezar
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // RENDER: JUEGO PRINCIPAL
+            return (
+                <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white p-4 md:p-8 overflow-y-auto no-scrollbar">
+                    <div className="max-w-5xl mx-auto">
+                        
+                        {/* Header Stats */}
+                        <div className="flex justify-between items-center mb-8 bg-slate-800/50 p-4 rounded-2xl border border-slate-700 backdrop-blur-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-cyan-900 flex items-center justify-center text-cyan-400 font-bold border border-cyan-500/30">
+                                    {currentLevel + 1}
+                                </div>
+                                <div className="text-sm">
+                                    <p className="text-slate-400 uppercase text-xs tracking-wider">Alumno Actual</p>
+                                    <p className="font-bold text-lg text-white">{currentData.student}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-end">
+                                <p className="text-slate-400 text-xs uppercase tracking-wider">Puntuación</p>
+                                <div className="flex items-center gap-1 text-yellow-400 font-bold text-xl">
+                                    <i className="fas fa-star"></i>
+                                    <span>{score}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Question Area */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            
+                            {/* Left: Context */}
+                            <div className="lg:col-span-4 space-y-6">
+                                <div className="bg-slate-800 p-6 rounded-2xl border-l-4 border-cyan-500 shadow-xl relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4 opacity-10 text-9xl">{currentData.icon}</div>
+                                    <h3 className="text-cyan-400 font-bold uppercase tracking-widest text-xs mb-2">Tema del Informe</h3>
+                                    <h2 className="text-2xl font-bold mb-4 relative z-10">{currentData.topic}</h2>
+                                    <div className="bg-slate-900/50 p-4 rounded-lg text-sm text-slate-300 relative z-10">
+                                        <p><i className="fas fa-info-circle mr-2 text-cyan-500"></i>Ayuda a <strong>{currentData.student}</strong> a elegir la introducción que tenga:</p>
+                                        <ul className="mt-2 space-y-2 ml-4 text-slate-400 text-sm">
+                                            <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-yellow-400"></span> <span>El Tema Grande</span></li>
+                                            <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> <span>La Lupa</span></li>
+                                            <li className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> <span>La Misión</span></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Mascot/Character placeholder */}
+                                <div className="hidden lg:flex items-center justify-center p-8 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                                    <div className="text-[120px] drop-shadow-2xl animate-float">{currentData.icon}</div>
+                                </div>
+                            </div>
+
+                            {/* Right: Options */}
+                            <div className="lg:col-span-8 space-y-4">
+                                {currentData.options.sort(() => Math.random() - 0.5).map((option) => { // Randomize order
+                                    const isSelected = selectedOption?.id === option.id;
+                                    const isCorrect = option.type === 'correct';
+                                    
+                                    let borderClass = "border-slate-700 hover:border-blue-500";
+                                    let bgClass = "bg-slate-800 hover:bg-slate-750";
+
+                                    if (showFeedback) {
+                                        if (isSelected) {
+                                            borderClass = isCorrect ? "border-emerald-500" : "border-rose-500";
+                                            bgClass = isCorrect ? "bg-emerald-900/20" : "bg-rose-900/20";
+                                        } else if (isCorrect && !isSelected) {
+                                            // Show correct answer if user picked wrong
+                                            borderClass = "border-emerald-500/50 dashed";
+                                            bgClass = "bg-emerald-900/10 opacity-75";
+                                        } else {
+                                            bgClass = "bg-slate-800 opacity-50";
+                                        }
+                                    }
+
+                                    return (
+                                        <button
+                                            key={option.id}
+                                            onClick={() => handleOptionSelect(option)}
+                                            disabled={showFeedback}
+                                            className={`w-full text-left p-6 rounded-xl border-2 transition-all duration-300 relative group ${borderClass} ${bgClass}`}
+                                        >
+                                            <div className="flex items-start gap-4">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold border ${
+                                                    showFeedback && isSelected 
+                                                        ? (isCorrect ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-rose-500 border-rose-500 text-white')
+                                                        : 'bg-slate-700 border-slate-600 text-slate-400 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-500'
+                                                }`}>
+                                                    {option.id}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-slate-200 leading-relaxed text-sm md:text-base">{option.text}</p>
+                                                    
+                                                    {showFeedback && isSelected && (
+                                                        <div className={`mt-4 p-3 rounded-lg text-sm animate-fadeIn ${isCorrect ? 'bg-emerald-500/20 text-emerald-200' : 'bg-rose-500/20 text-rose-200'}`}>
+                                                            <strong className="block mb-1">{isCorrect ? '¡Excelente elección!' : 'Ups, no es la mejor opción.'}</strong>
+                                                            {option.feedback}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+
+                                {showFeedback && (
+                                    <div className="flex justify-end pt-4 animate-fadeIn">
+                                        <button 
+                                            onClick={nextLevel}
+                                            className="bg-white text-slate-900 font-bold py-3 px-8 rounded-xl shadow-lg hover:scale-105 transition-transform flex items-center gap-2"
+                                        >
+                                            {currentLevel + 1 === levels.length ? "Ver Resultados" : "Siguiente Alumno"}
+                                            <i className="fas fa-arrow-right"></i>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

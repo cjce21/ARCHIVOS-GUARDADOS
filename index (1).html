@@ -3,639 +3,2398 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zoo-Lógica</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Gestión de Notas - Pinceladas Montessori</title>
+    
+    <!-- OPTIMIZACIÓN DE CONEXIÓN (PRECONNECT): Ya implementado para acelerar la conexión a Google Docs/Sheets. -->
+    <link rel="preconnect" href="https://docs.google.com">
+    <link rel="preconnect" href="https://sheets.googleapis.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Montserrat', sans-serif;
-            background: #ffffff; /* Fondo blanco */
-            transition: box-shadow 0.2s ease-in-out;
-        }
-        
-        #game-area {
-            perspective: 1000px;
-        }
 
-        /* Estilo del mazo de cartas */
-        .card-stack {
-            position: relative;
-            width: 224px; /* Ancho base para móviles */
-            height: 308px; /* Alto base para móviles */
-            cursor: pointer;
-            transition: transform 0.3s ease;
-        }
-        @media (min-width: 640px) { /* sm breakpoint */
-            .card-stack {
-                width: 256px;
-                height: 352px;
+    <!-- FAVICON -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect x=%2210%22 y=%2240%22 width=%2220%22 height=%2250%22 rx=%224%22 fill=%22%23002060%22/><rect x=%2240%22 y=%2225%22 width=%2220%22 height=%2265%22 rx=%224%22 fill=%22%23002060%22/><rect x=%2270%22 y=%2210%22 width=%2220%22 height=%2280%22 rx=%224%22 fill=%22%23C00000%22/></svg>">
+
+    <!-- Fuentes -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Chewy&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+    
+    <!-- Advertencia: Uso de CDN de Tailwind. En producción se recomienda compilar el CSS estático. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        montserrat: ['Montserrat', 'sans-serif'],
+                        chewy: ['Chewy', 'cursive']
+                    },
+                    colors: {
+                        montessori: {
+                            blue: '#002060',
+                            red: '#C00000',
+                            yellow: '#FFD966',
+                            gray: '#F3F4F6'
+                        }
+                    },
+                    boxShadow: {
+                        'card-hover': '0 15px 30px -5px rgba(0, 0, 0, 0.08), 0 10px 12px -6px rgba(0, 0, 0, 0.02)',
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.03)', 
+                        'calendar': '0 10px 25px -5px rgba(0, 32, 96, 0.1), 0 8px 10px -6px rgba(0, 32, 96, 0.1)'
+                    },
+                    animation: {
+                        'blob': 'blob 20s infinite alternate',
+                        'diagonal-shift': 'diagonalShift 3s ease-in-out infinite alternate', 
+                        'pulse-bg': 'pulseBg 4s infinite'
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(80px, -100px) scale(1.2) rotate(20deg)' },
+                            '66%': { transform: 'translate(-60px, 60px) scale(0.9) rotate(-10deg)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' }
+                        },
+                        diagonalShift: {
+                            '0%': { 'background-position': '0% 0%' },
+                            '100%': { 'background-position': '100% 100%' }
+                        },
+                        pulseBg: {
+                            '0%, 100': { 'background-color': 'rgba(254, 242, 242, 1)' }, /* Red-50 */
+                            '50%': { 'background-color': 'rgba(239, 246, 255, 1)' } /* Blue-50 */
+                        }
+                    }
+                }
             }
         }
-        .card-stack:hover {
-            transform: scale(1.05) rotate(3deg);
-        }
-        .card-stack-item {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 1.5rem;
-            background-color: white;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            border: 2px solid #1a202c; /* Borde negro */
-            transition: transform 0.3s ease;
-        }
-        .card-stack-item:nth-child(1) { transform: rotate(-8deg); }
-        .card-stack-item:nth-child(2) { transform: rotate(-2deg); }
-        .card-stack-item:nth-child(3) { transform: rotate(4deg); }
-
-        /* Animación de giro de la carta */
-        .card-container {
-            transform-style: preserve-3d;
-            transition: transform 0.6s;
-        }
-        .card-container.is-flipped {
-            transform: rotateY(180deg);
-        }
-        .card-face {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
+    </script>
+    <style>
+        /* --- CORE LAYOUT & PERFORMANCE --- */
+        body { 
+            background-color: #ffffff; 
+            height: 100vh; 
+            overflow: hidden; 
             display: flex;
             flex-direction: column;
+        }
+
+        /* OPTIMIZACIÓN DE SCROLLBAR */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            height: 0;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
+        /* OPTIMIZACIÓN DE RENDERIZADO (will-change) */
+        .will-change-transform { will-change: transform; }
+        .will-change-opacity { will-change: opacity; }
+        .will-change-scroll { will-change: scroll-position, transform; }
+
+        /* MODO ALTO RENDIMIENTO */
+        body.high-performance-mode .particles-container,
+        body.high-performance-mode .animated-diagonal-background {
+            display: none !important;
+        }
+        
+        body.high-performance-mode {
+            background: #ffffff !important;
+        }
+        
+        /* Loader de texto minimalista */
+        @keyframes ellipsis {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+        }
+        /* Clase 'loading-text' eliminada de estilos ya que la lógica ahora es dinámica en JS */
+        
+        /* --- SKELETON LOADER (NUEVO) --- */
+        .animate-shimmer {
+            background: linear-gradient(to right, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite linear;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .skeleton-row {
+            height: 56px; /* Altura estándar de una fila de estudiante */
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+        }
+        
+        /* --- CLASES DE UTILIDAD --- */
+        main {
+            flex: 1;
+            overflow-y: auto; 
+            display: flex;
+            flex-direction: column;
+            /* Eliminado padding-y de aquí para controlarlo en las vistas */
+            padding-left: 1.5rem; 
+            padding-right: 1.5rem; 
+            width: 100%;
+        }
+
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* --- ANIMACIONES GENERALES --- */
+        @keyframes colorPulse { 
+            0% { color: #9CA3AF; } 
+            25% { color: #C00000; } 
+            50% { color: #9CA3AF; } 
+            75% { color: #002060; } 
+            100% { color: #9CA3AF; } 
+        }
+        .animate-pulse-color { animation: colorPulse 8s ease-in-out infinite; }
+
+        @keyframes blueRedCycle {
+            0%, 100% { color: #002060; } 
+            50% { color: #C00000; }      
+        }
+        .animate-blue-red { animation: blueRedCycle 3s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+
+
+        /* Loader circular */
+        .loader {
+            border: 3px solid rgba(255,255,255,0.3); 
+            border-radius: 50%; 
+            border-top: 3px solid #ffffff;
+            width: 20px; 
+            height: 20px; 
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* --- TRANSICIONES --- */
+        .fade-out { animation: fadeOut 0.4s ease-out forwards; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
+        @keyframes fadeOut { 
+            from { opacity: 1; transform: scale(1); } 
+            to { opacity: 0; transform: scale(0.99); pointer-events: none; } 
+        }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: scale(0.99); } 
+            to { opacity: 1; transform: scale(1); } 
+        }
+
+        /* --- LOGO --- */
+        :root { --logo-blue: #002060; --logo-red: #C00000; }
+        
+        .text-colegio {
+            color: var(--logo-blue);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: -0.1em;
+            line-height: 1;
+        }
+        .text-pinceladas {
+            font-family: 'Chewy', cursive;
+            color: var(--logo-red);
+            line-height: 1;
+        }
+        .text-montessori-sub {
+            background-color: var(--logo-blue);
+            color: #ffffff;
+            padding: 0.1em 0.3em;
+            border-radius: 50px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            display: flex;
             justify-content: center;
             align-items: center;
-            border-radius: 1.5rem;
-        }
-        .card-back {
-            transform: rotateY(180deg);
-            padding: 1rem;
-            border: 2px solid #1a202c; /* Borde negro añadido */
+            margin-top: -0.1em;
+            letter-spacing: 0.1em;
+            text-align: center;
+            width: auto; 
         }
         
-        /* Animación del temporizador */
-        @keyframes timer-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); color: #dc2626; }
+        .logo-lg .text-colegio { font-size: clamp(1rem, 2.5vw, 1.2rem); }
+        .logo-lg .text-pinceladas { font-size: clamp(2.5rem, 6vw, 3.2rem); }
+        .logo-lg .text-montessori-sub { font-size: clamp(1rem, 2.5vw, 1.2rem); }
+
+        .logo-sm .text-colegio { font-size: 0.55rem; }
+        .logo-sm .text-pinceladas { font-size: 1.3rem; }
+        .logo-sm .text-montessori-sub { font-size: 0.55rem; padding: 1px 4px; }
+        
+        /* --- NÚMERO DE GRADO COMO MARCA DE AGUA (UI Refinamiento) --- */
+        .grade-card { position: relative; overflow: hidden; }
+        
+        .grade-icon-overlay {
+            /* ... positioning properties ... */
+            position: absolute;
+            top: 50%;
+            right: 5%;
+            transform: translateY(-50%);
+            font-size: 8rem; 
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 900;
+            opacity: 0.05; 
+            line-height: 1;
+            z-index: 0;
+            user-select: none;
+            /* Solo transición de opacidad y color */
+            transition: opacity 0.3s ease-out, color 0.3s ease-out; 
         }
-        .timer-warning {
-            animation: timer-pulse 1s infinite;
+        
+        /* EFECTO HOVER: Opacidad al 100% (MODIFICADO) */
+        .grade-card:hover .grade-icon-overlay {
+            opacity: 1; 
         }
-        .modal-enter {
-            animation: modal-enter-animation 0.3s ease-out forwards;
+        /* Clase específica para el color del overlay en hover */
+        .text-montessori-red { color: #C00000; }
+        .text-montessori-blue { color: #002060; }
+
+
+        /* --- CALENDARIO STYLES --- */
+        #calendarGrid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(6, 1fr); 
+            gap: 0.25rem;
+            height: 100%;
         }
-        @keyframes modal-enter-animation {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
+
+        .calendar-day {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; 
+            align-items: center;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.15s ease-out;
+            position: relative;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding-top: 2px;
+            height: 100%;
+            border: 1px solid transparent;
         }
-        /* Animación de mazo agitado por tiempo agotado */
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0) rotate(3deg); }
-            20%, 80% { transform: translate3d(2px, 0, 0) rotate(-3deg); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0) rotate(3deg); }
-            40%, 60% { transform: translate3d(4px, 0, 0) rotate(-3deg); }
+
+        .calendar-day:hover:not(.empty) {
+            background-color: #EFF6FF;
+            border-color: #BFDBFE;
+            color: #002060;
         }
-        .animate-shake {
-            animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+
+        .calendar-day.empty { cursor: default; pointer-events: none; }
+
+        .dot-indicator {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            margin-top: auto;
+            margin-bottom: 2px;
         }
+
+        .calendar-day.current-day { background-color: #002060 !important; color: white !important; font-weight: 700; box-shadow: 0 2px 5px rgba(0,32,96,0.25); }
+        .calendar-day.current-day .dot-indicator { background-color: #FFD966; }
+
+        .calendar-day.holiday { background-color: #FEF2F2; color: #991B1B; border-color: #FECACA; }
+        .calendar-day.holiday .dot-indicator { background-color: #DC2626; }
+
+        .calendar-day.educational { background-color: #F0F9FF; color: #0369A1; border-color: #BAE6FD; }
+        .calendar-day.educational .dot-indicator { background-color: #0EA5E9; }
+
+        .calendar-day.holy-week { background-color: #FAF5FF; color: #6B21A8; border-color: #E9D5FF; }
+
+        .cal-nav-btn {
+            color: #002060;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            padding: 0.25rem;
+            flex-shrink: 0;
+        }
+        .cal-nav-btn:hover { background-color: #EFF6FF; color: #C00000; transform: scale(1.1); }
+        .cal-nav-btn:active { transform: scale(0.95); }
+        
+        /* --- FONDO ACADÉMICO Y PARTÍCULAS --- */
+        .particles-container {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .grade-particle {
+            position: absolute;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 900; 
+            opacity: 0;
+            user-select: none;
+            text-shadow: 0 2px 4px rgba(255,255,255,0.5); 
+        }
+
+        .grade-particle.blue { color: rgba(0, 32, 96, 0.25); }
+        .grade-particle.red { color: rgba(192, 0, 0, 0.25); }
+
+        .grade-particle.background {
+            animation: floatUp linear infinite;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(110vh) scale(0.8) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.1) rotate(var(--rotation)); opacity: 0; }
+        }
+
+        /* Fondo de rejilla eliminado por solicitud del usuario */
+
+        .animated-diagonal-background {
+            background: repeating-linear-gradient(
+                45deg, 
+                #DBEAFE 0%,
+                #DBEAFE 40%, 
+                #FEE2E2 60%,
+                #FEE2E2 100%
+            );
+            background-size: 200vw 200vh;
+            animation: diagonalShift 3s ease-in-out infinite alternate; 
+            position: absolute; 
+            inset: 0;
+            z-index: 0;
+            will-change: background-position, transform; 
+        }
+        
+        /* --- ESTILOS MEJORADOS PARA EL DROPDOWN DE GRADOS --- */
+        #grade-quick-switcher {
+            position: relative;
+            /* Eliminamos altura y margen fijo para un layout más fluido con el buscador */
+            height: auto; 
+            margin-bottom: 0; 
+            display: inline-block; /* Ocupa solo el espacio necesario */
+            flex-shrink: 0;
+        }
+        
+        /* El contenedor de las opciones debe ser flotante */
+        #switcher-dropdown {
+            position: absolute;
+            top: 100%; /* Justo debajo del botón */
+            right: 0;
+            z-index: 60; 
+            min-width: 250px;
+            max-height: 300px; /* Limita la altura */
+            overflow-y: auto;
+            white-space: nowrap;
+            padding: 8px;
+            border-radius: 12px;
+            background-color: white;
+            box-shadow: 0 10px 25px -5px rgba(0, 32, 96, 0.1), 0 8px 10px -6px rgba(0, 32, 96, 0.1);
+            border: 1px solid #E5E7EB;
+        }
+
+        #switcher-dropdown button {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            text-align: left;
+            transition: background-color 0.15s, transform 0.1s;
+        }
+
+        #switcher-dropdown button:hover:not(:disabled) {
+            transform: translateX(3px);
+        }
+        
+        #switcher-dropdown button:disabled {
+            background-color: #F3F4F6;
+            font-weight: 700;
+            color: #1F2937;
+            border-left: 4px solid var(--selected-color);
+            cursor: default;
+        }
+
     </style>
 </head>
-<body class="flex items-center justify-center h-screen overflow-hidden">
+<body class="text-slate-800 font-sans antialiased">
 
-    <div id="app-container" class="w-full max-w-2xl mx-auto text-center p-4">
-
-        <!-- Pantalla de Inicio --><div id="start-screen" class="hidden relative flex flex-col justify-center min-h-[500px]">
-            <div>
-                <h1 class="text-4xl md:text-5xl font-black text-black mb-8 uppercase tracking-wider">Zoo-Lógica</h1>
-                <div class="grid grid-cols-1 gap-4 max-w-sm mx-auto">
-                    <button id="start-button" class="bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
-                        Nueva Partida
-                    </button>
-                    <button id="continue-button" class="hidden bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
-                        Continuar Partida
-                    </button>
-                    <button id="grades-button" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-gray-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300 text-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                        Ver Calificaciones
-                    </button>
-                </div>
-            </div>
-             <p class="text-sm text-gray-500 mt-12 absolute bottom-0 w-full left-0">
-                © 2025 Zoo-Lógica | Desarrollado por Didac-Click Group.
-            </p>
+    <!-- PRELOADER -->
+    <div id="initial-loader" class="fixed inset-0 z-[300] flex items-center justify-center bg-blue-50 transition-all duration-700">
+        <div class="animated-diagonal-background animate-diagonal-shift"></div>
+        <div class="particles-container z-10"></div>
+        <div class="relative z-20 flex flex-col items-center justify-center">
+            <h1 class="text-5xl md:text-7xl font-bold font-montserrat animate-blue-red drop-shadow-sm text-center leading-tight">Cargando...</h1>
         </div>
-        
-        <!-- Pantalla de Calificaciones --><div id="grades-screen" class="hidden">
-            <div class="bg-white p-6 rounded-2xl shadow-lg">
-                <h2 class="text-3xl font-black text-black mb-6">Reporte de Calificación</h2>
-                <div id="grades-content" class="space-y-4 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-6 md:space-y-0 text-left"></div>
-                 <button id="back-to-start-button" class="mt-8 bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
-                    Volver
-                </button>
-            </div>
-        </div>
+    </div>
 
-        <!-- Pantalla de Juego --><div id="game-screen" class="hidden">
-            <div class="flex justify-between items-center mb-4 px-2">
-                <button id="home-button" class="text-gray-600 hover:text-green-600 transition-colors p-2 rounded-full hover:bg-gray-100">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                </button>
-                <div id="progress-display" class="text-lg sm:text-2xl font-bold text-gray-700"></div>
-                <div id="timer-display" class="w-16 text-center text-3xl sm:text-4xl font-black text-green-600">10</div>
-            </div>
-            
-            <div id="game-area" class="relative h-80 sm:h-96 flex items-center justify-center">
-                <div id="played-cards-stack" class="hidden card-stack absolute">
-                    <div class="card-stack-item bg-white" style="transform: rotate(5deg);"></div>
-                    <div class="card-stack-item bg-white" style="transform: rotate(-3deg);"></div>
+    <!-- LOGIN -->
+    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-blue-50 overflow-hidden transition-all duration-700">
+        <div class="animated-diagonal-background animate-diagonal-shift"></div>
+        <div class="particles-container z-10"></div>
+        <div id="quote-container" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-8 text-center max-w-4xl mx-auto">
+            <h2 id="quote-text" class="text-3xl md:text-5xl font-bold text-montessori-blue leading-tight font-montserrat drop-shadow-sm mb-4"></h2>
+            <div class="h-1 w-24 bg-montessori-red rounded-full mx-auto"></div>
+        </div>
+        <!-- MEJORA UI: Glassmorphism refinado (bg-white/70 backdrop-blur-3xl) -->
+        <div id="login-card" class="relative z-20 w-full max-w-3xl mx-4 transition-all duration-700">
+            <div class="bg-white/70 backdrop-blur-3xl border border-white/50 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[380px]">
+                <div class="w-full md:w-5/12 bg-gray-50/80 flex flex-col items-center justify-center p-6 border-b md:border-b-0 md:border-r border-gray-100 gap-4">
+                    <div class="logo-container logo-lg cursor-pointer" onclick="openTutorialModal()">
+                        <div class="text-section flex flex-col items-center">
+                            <div class="text-colegio">COLEGIO</div>
+                            <div class="text-pinceladas">Pinceladas</div>
+                            <div class="text-montessori-sub">MONTESSORI</div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-600 font-medium text-center hidden md:block mt-2">Sistema de Gestión Académica</p>
                 </div>
-                <div id="deck" class="card-stack">
-                    <div class="card-stack-item"></div>
-                    <div class="card-stack-item"></div>
-                    <div class="card-stack-item bg-white flex flex-col items-center justify-center p-2 overflow-hidden">
-                         <img id="deck-image" src="https://i.supaimg.com/37ef4026-991a-42e1-afa0-b2db1a21237f.jpg" alt="Reverso de la carta" class="w-full h-full object-cover rounded-xl">
+                <div class="w-full md:w-7/12 p-6 md:p-8 flex flex-col justify-center">
+                    <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Credenciales de Acceso</label>
+                            <div class="space-y-3">
+                                <div class="relative group z-20">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="w-4 h-4 text-gray-600 group-focus-within:text-montessori-blue transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                    </div>
+                                    <input type="text" id="username" required class="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white border border-gray-200 text-gray-800 focus:bg-white focus:border-montessori-blue focus:ring-2 focus:ring-montessori-blue/40 outline-none transition-all duration-300 text-sm placeholder-gray-600" placeholder="Usuario">
+                                </div>
+                                <div class="relative group z-20">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="w-4 h-4 text-gray-600 group-focus-within:text-montessori-blue transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                    </div>
+                                    <input type="password" id="password" required class="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white border border-gray-200 text-gray-800 focus:bg-white focus:border-montessori-blue focus:ring-2 focus:ring-montessori-blue/40 outline-none transition-all duration-300 text-sm placeholder-gray-600" placeholder="Contraseña">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="login-status-container" class="min-h-[40px] transition-all duration-300 rounded-lg flex items-center justify-center gap-2 border border-transparent text-center px-2 py-1 bg-gray-50">
+                             <span id="login-status-text" class="text-xs font-medium text-gray-600">Ingrese sus credenciales para continuar</span>
+                        </div>
+                        <button type="submit" id="btn-login" class="relative w-full bg-montessori-blue text-white font-bold text-sm py-3 rounded-lg shadow-lg shadow-montessori-blue/30 hover:bg-montessori-blue hover:shadow-montessori-blue/50 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 flex justify-center items-center">
+                            <span id="btn-text">Iniciar Sesión</span>
+                            <div id="btn-loader" class="loader hidden absolute w-5 h-5 border-2"></div>
+                        </button>
+                    </form>
+                    <div class="mt-4 text-center">
+                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=gestion.educativa.pinceladas@gmail.com" target="_blank" class="text-[10px] text-gray-600 hover:text-montessori-blue transition-colors font-medium inline-flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            Soporte Técnico
+                        </a>
                     </div>
                 </div>
-                <div id="current-card-container" class="hidden w-56 h-72 sm:w-64 sm:h-80">
-                    <div class="card-container w-full h-full">
-                        <div class="card-face card-front bg-green-600"></div>
-                        <div class="card-face card-back bg-white shadow-2xl"></div>
-                    </div>
-                </div>
             </div>
+        </div>
+    </div>
 
-            <div id="options-container" class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                <button data-type="Carnívoro" class="option-button bg-red-500 text-white font-bold py-3 sm:py-4 rounded-xl shadow-lg hover:bg-red-600 transition-all transform hover:scale-105 disabled:opacity-50">Carnívoro</button>
-                <button data-type="Herbívoro" class="option-button bg-blue-500 text-white font-bold py-3 sm:py-4 rounded-xl shadow-lg hover:bg-blue-600 transition-all transform hover:scale-105 disabled:opacity-50">Herbívoro</button>
-                <button data-type="Omnívoro" class="option-button bg-yellow-500 text-white font-bold py-3 sm:py-4 rounded-xl shadow-lg hover:bg-yellow-600 transition-all transform hover:scale-105 disabled:opacity-50">Omnívoro</button>
+    <!-- TIMEOUT -->
+    <div id="timeout-screen" class="fixed inset-0 z-[200] flex items-center justify-center bg-blue-50 overflow-hidden opacity-0 transition-opacity duration-500 ease-out hidden">
+        <div class="animated-diagonal-background animate-diagonal-shift"></div>
+        <div class="particles-container z-10"></div>
+        <div class="relative z-20 bg-white/70 backdrop-blur-3xl p-8 rounded-3xl shadow-2xl border border-white/50 max-w-lg w-full text-center transform transition-transform duration-500 scale-95" id="timeout-content">
+            <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 ring-4 ring-red-50/50">
+                <svg class="w-10 h-10 text-montessori-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
             </div>
-            <div id="definition-display" class="mt-4 h-12 text-base sm:text-lg text-gray-700 font-medium transition-opacity duration-500"></div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2" id="timeout-title">Sesión Finalizada por Seguridad</h3>
+            <p class="text-gray-600 text-sm mb-8 leading-relaxed" id="timeout-message">Para proteger la confidencialidad de la información académica, la sesión ha finalizado tras detectar un periodo de inactividad. Presione el botón para restablecer el acceso.</p>
+            <button onclick="location.reload()" class="w-full bg-montessori-blue text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-blue-800 hover:shadow-montessori-blue/30 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0">Restablecer Sesión</button>
         </div>
     </div>
     
-    <!-- Modales --><div id="modal-overlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <!-- Modal de Bienvenida --><div id="explanation-modal" class="hidden bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center modal-enter">
-            <h2 class="text-2xl font-black text-black mb-4 whitespace-nowrap">¡Bienvenido a Zoo-Lógica!</h2>
-            <p class="text-black mb-6">
-                Tu objetivo es clasificar el régimen alimenticio de distintas especies. Dispones de 10 segundos por cada animal para demostrar cuánto sabes. ¡Mucha suerte!
-            </p>
-            <button id="understood-button" class="w-full bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
-                Entendido
-            </button>
-        </div>
-
-        <!-- Modal de Feedback --><div id="feedback-modal" class="hidden bg-white p-6 rounded-2xl shadow-2xl max-w-md w-full text-center modal-enter">
-             <div id="feedback-image" class="text-8xl mb-4"></div>
-             <h2 id="feedback-title" class="text-3xl font-black mb-2"></h2>
-             <p id="feedback-text" class="text-black text-left mb-6"></p>
-             <button id="feedback-continue-button" class="w-full bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-green-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 text-lg">
-                Continuar
-            </button>
+    <!-- NUEVA PANTALLA: CIERRE DE PROCESAMIENTO -->
+    <div id="closure-screen" class="fixed inset-0 z-[200] flex items-center justify-center bg-montessori-red/95 overflow-hidden opacity-0 transition-opacity duration-500 ease-out hidden">
+        <div class="particles-container z-10"></div>
+        <!-- MODIFICADO: max-w-xl -> max-w-3xl. -->
+        <div class="relative z-20 bg-white p-8 rounded-3xl shadow-2xl border border-red-500 max-w-3xl w-full text-center transform transition-transform duration-500 scale-95" id="closure-content">
+            <div class="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-red-300/50">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <!-- MODIFICADO: Añadido whitespace-nowrap y text-center. -->
+            <h3 class="text-3xl font-black text-montessori-red font-montserrat mb-3 text-center whitespace-nowrap" id="closure-title">CIERRE DE PROCESAMIENTO DE DATOS</h3>
+            <!-- MODIFICADO: text-justify -->
+            <p class="text-gray-700 text-base mb-8 leading-relaxed text-justify" id="closure-message">El sistema ha sido cerrado por la Administración debido a la fase de corte y cierre de evaluaciones. El acceso se restablecerá automáticamente al inicio del próximo periodo académico.</p>
+            <!-- MODIFICADO: Botón con nuevo texto -->
+            <button onclick="logout()" class="w-full bg-montessori-blue text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-blue-800 hover:shadow-montessori-blue/30 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0">Cerrar Sesión</button>
+            <p class="text-xs text-gray-500 mt-4 text-center">El programa volverá a estar disponible para la gestión del Período 3.</p>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const animals = [
-                // Carnívoros (34)
-                { name: 'León', type: 'Carnívoro', emoji: '🦁', description: 'El león es un superdepredador cuya dieta se basa en la carne de animales que caza, como cebras y ñus.'},
-                { name: 'Tigre', type: 'Carnívoro', emoji: '🐅', description: 'Como cazador solitario, el tigre se alimenta de grandes presas como ciervos y jabalíes.'},
-                { name: 'Lobo', type: 'Carnívoro', emoji: '🐺', description: 'Los lobos cazan en manada para derribar presas grandes como alces y ciervos.'},
-                { name: 'Tiburón', type: 'Carnívoro', emoji: '🦈', description: 'Se alimenta de peces, focas y mamíferos marinos, situándose en la cima de la cadena alimenticia.'},
-                { name: 'Águila', type: 'Carnívoro', emoji: '🦅', description: 'Esta ave rapaz utiliza su aguda vista y garras para cazar peces, roedores y serpientes.'},
-                { name: 'Cocodrilo', type: 'Carnívoro', emoji: '🐊', description: 'Depredador de emboscada, se alimenta de peces, aves y mamíferos que se acercan al agua.'},
-                { name: 'Araña', type: 'Carnívoro', emoji: '🕷️', description: 'Las arañas son depredadores de insectos y otros pequeños invertebrados que atrapan en sus telarañas.'},
-                { name: 'Serpiente', type: 'Carnívoro', emoji: '🐍', description: 'Ingieren a sus presas enteras, que pueden ser desde pequeños roedores hasta animales más grandes.'},
-                { name: 'Guepardo', type: 'Carnívoro', emoji: '🐆', description: 'Conocido por su increíble velocidad, caza mamíferos de tamaño mediano como gacelas.'},
-                { name: 'Oso Polar', type: 'Carnívoro', emoji: '🐻‍❄️', description: 'Su dieta se basa principalmente en focas, que caza en el hielo marino del Ártico.'},
-                { name: 'Búho', type: 'Carnívoro', emoji: '🦉', description: 'Cazador nocturno, se alimenta de roedores, insectos y otras aves pequeñas.'},
-                { name: 'Piraña', type: 'Carnívoro', emoji: '🐟', description: 'Conocidas por sus afilados dientes, las pirañas se alimentan en grupo de peces e insectos.'},
-                { name: 'Orca', type: 'Carnívoro', emoji: '🐳', description: 'Depredador marino tope, su dieta incluye peces, focas e incluso otras ballenas.'},
-                { name: 'Foca', type: 'Carnívoro', emoji: '🦭', description: 'Las focas se alimentan principalmente de peces, calamares y crustáceos que capturan bajo el agua.'},
-                { name: 'Puma', type: 'Carnívoro', emoji: '🐈‍⬛', description: 'Es un depredador adaptable que caza desde ciervos y alces hasta pequeños roedores.'},
-                { name: 'Nutria', type: 'Carnívoro', emoji: '🦦', description: 'Las nutrias tienen una dieta basada en peces, cangrejos y otros invertebrados acuáticos.'},
-                { name: 'Dragón de Komodo', type: 'Carnívoro', emoji: '🦎', description: 'El lagarto más grande del mundo, caza presas como ciervos, cerdos e incluso búfalos.'},
-                { name: 'Lince', type: 'Carnívoro', emoji: '🐈', description: 'Este felino solitario se especializa en cazar conejos y liebres.'},
-                { name: 'Pingüino', type: 'Carnívoro', emoji: '🐧', description: 'Son excelentes nadadores que se alimentan de krill, calamares y peces que cazan en el océano.'},
-                { name: 'Mantis Religiosa', type: 'Carnívoro', emoji: '🦗', description: 'Depredador de emboscada, este insecto se alimenta de otros insectos y arañas.'},
-                { name: 'Mosquito', type: 'Carnívoro', emoji: '🦟', description: 'Las hembras son carnívoras hematófagas, ya que se alimentan de la sangre de otros animales.'},
-                { name: 'Mariquita', type: 'Carnívoro', emoji: '🐞', description: 'Es un importante depredador de pulgones y otros insectos considerados plagas para las plantas.'},
-                { name: 'Escorpión', type: 'Carnívoro', emoji: '🦂', description: 'Cazador nocturno, se alimenta de insectos, arañas y otros escorpiones.'},
-                { name: 'Delfín', type: 'Carnívoro', emoji: '🐬', description: 'Estos mamíferos marinos inteligentes cazan en grupo para alimentarse de peces y calamares.'},
-                { name: 'Rana', type: 'Carnívoro', emoji: '🐸', description: 'Se alimentan de insectos, arañas y gusanos que capturan con su larga y pegajosa lengua.'},
-                { name: 'Murciélago', type: 'Carnívoro', emoji: '🦇', description: 'Se alimenta de insectos, arañas y otros pequeños artrópodos que caza durante la noche.'},
-                { name: 'Langosta', type: 'Carnívoro', emoji: '🦞', description: 'Se alimenta de peces, cangrejos, almejas y otros animales marinos que encuentra en el fondo.'},
-                { name: 'Pulpo', type: 'Carnívoro', emoji: '🐙', description: 'Utiliza sus tentáculos para atrapar cangrejos, almejas y otros crustáceos.'},
-                { name: 'Calamar', type: 'Carnívoro', emoji: '🦑', description: 'Se alimenta de peces y crustáceos que captura con sus largos tentáculos.'},
-                { name: 'T-Rex', type: 'Carnívoro', emoji: '🦖', description: 'Fue uno de los carnívoros más grandes, alimentándose de otros dinosaurios.'},
-                { name: 'Pez Globo', type: 'Carnívoro', emoji: '🐡', description: 'Es principalmente carnívoro y se alimenta de invertebrados con caparazón y algas.'},
-                { name: 'Hiena', type: 'Carnívoro', emoji: '🐾', description: 'Aunque son carroñeras, también son cazadoras eficaces, alimentándose de ñus y cebras.'},
-                { name: 'Zorro', type: 'Carnívoro', emoji: '🦊', description: 'Caza principalmente pequeños roedores, conejos y aves.'},
-                { name: 'Halcón', type: 'Carnívoro', emoji: '🪶', description: 'Es un ave rapaz que caza otras aves, pequeños mamíferos y reptiles.'},
-                
-                // Herbívoros (33)
-                { name: 'Elefante', type: 'Herbívoro', emoji: '🐘', description: 'Es un megaherbívoro que consume grandes cantidades de hierbas, cortezas y frutas.'},
-                { name: 'Jirafa', type: 'Herbívoro', emoji: '🦒', description: 'Gracias a su largo cuello, se especializa en ramonear las hojas y brotes de los árboles.'},
-                { name: 'Vaca', type: 'Herbívoro', emoji: '🐄', description: 'Como rumiante, tiene un sistema digestivo especializado para digerir pastos y forrajes.'},
-                { name: 'Conejo', type: 'Herbívoro', emoji: '🐇', description: 'Su dieta se compone de hierbas y tréboles. Sus dientes crecen continuamente.'},
-                { name: 'Ciervo', type: 'Herbívoro', emoji: '🦌', description: 'Son rumiantes que se alimentan de hojas, ramas, hierbas y brotes tiernos.'},
-                { name: 'Caballo', type: 'Herbívoro', emoji: '🐎', description: 'Es un animal pastador cuya dieta se basa en heno y pasto.'},
-                { name: 'Cebra', type: 'Herbívoro', emoji: '🦓', description: 'Son animales pastadores que se alimentan principalmente de hierbas de baja calidad.'},
-                { name: 'Koala', type: 'Herbívoro', emoji: '🐨', description: 'Tiene una dieta muy especializada, alimentándose casi exclusivamente de hojas de eucalipto.'},
-                { name: 'Panda', type: 'Herbívoro', emoji: '🐼', description: 'Aunque pertenece al orden de los carnívoros, la dieta del panda consiste en un 99% de bambú.'},
-                { name: 'Canguro', type: 'Herbívoro', emoji: '🦘', description: 'Son pastadores y se alimentan de una variedad de hierbas.'},
-                { name: 'Rinoceronte', type: 'Herbívoro', emoji: '🦏', description: 'Dependiendo de la especie, pueden pastar hierba o ramonear hojas y ramas.'},
-                { name: 'Gorila', type: 'Herbívoro', emoji: '🦍', description: 'Su dieta se basa en materia vegetal como tallos, hojas y frutas.'},
-                { name: 'Loro', type: 'Herbívoro', emoji: '🦜', description: 'Se alimentan principalmente de semillas, frutas, nueces y flores.'},
-                { name: 'Búfalo', type: 'Herbívoro', emoji: '🐃', description: 'Es un gran rumiante que se alimenta de hierbas y plantas acuáticas.'},
-                { name: 'Perezoso', type: 'Herbívoro', emoji: '🦥', description: 'Tienen una dieta de muy baja energía que consiste principalmente en hojas y brotes.'},
-                { name: 'Hipopótamo', type: 'Herbívoro', emoji: '🦛', description: 'Salen del agua por la noche para pastar grandes cantidades de hierba.'},
-                { name: 'Camello', type: 'Herbívoro', emoji: '🐪', description: 'Están adaptados a comer plantas duras y espinosas del desierto.'},
-                { name: 'Oveja', type: 'Herbívoro', emoji: '🐑', description: 'Son rumiantes que pastan hierba y otras plantas bajas.'},
-                { name: 'Cabra', type: 'Herbívoro', emoji: '🐐', description: 'Son ramoneadoras, prefiriendo comer hojas, ramas y arbustos.'},
-                { name: 'Mariposa', type: 'Herbívoro', emoji: '🦋', description: 'Las mariposas adultas se alimentan del néctar de las flores, mientras que sus orugas comen hojas.'},
-                { name: 'Abeja', type: 'Herbívoro', emoji: '🐝', description: 'Recolectan néctar y polen de las flores para alimentar a la colmena.'},
-                { name: 'Castor', type: 'Herbívoro', emoji: '🦫', description: 'Se alimenta de la corteza, hojas y ramas de los árboles que derriba.'},
-                { name: 'Llama', type: 'Herbívoro', emoji: '🦙', description: 'Son rumiantes que se alimentan de hierba y plantas de bajo crecimiento.'},
-                { name: 'Brontosaurio', type: 'Herbívoro', emoji: '🦕', description: 'Este dinosaurio de cuello largo era un herbívoro que comía grandes cantidades de plantas.'},
-                { name: 'Caracol', type: 'Herbívoro', emoji: '🐌', description: 'Se alimenta de una gran variedad de plantas, hojas, flores y frutas.'},
-                { name: 'Oruga', type: 'Herbívoro', emoji: '🐛', description: 'En su etapa de larva, es una voraz herbívora que se alimenta de hojas.'},
-                { name: 'Pavo Real', type: 'Herbívoro', emoji: '🦚', description: 'Su dieta es principalmente herbívora, basada en pétalos, semillas y plantas.'},
-                { name: 'Colibrí', type: 'Herbívoro', emoji: '🐤', description: 'Su dieta se basa casi exclusivamente en el néctar de las flores.'},
-                { name: 'Bisonte', type: 'Herbívoro', emoji: '🦬', description: 'Es un gran rumiante que se alimenta pastando en las praderas, principalmente de hierbas.'},
-                { name: 'Mamut', type: 'Herbívoro', emoji: '🦣', description: 'Era un herbívoro que se alimentaba de hierbas y arbustos de la tundra.'},
-                { name: 'Puercoespín', type: 'Herbívoro', emoji: '🦔', description: 'Se alimenta de cortezas, raíces, tallos y hojas. Usa sus púas para defenderse.'},
-                { name: 'Carnero', type: 'Herbívoro', emoji: '🐏', description: 'Como rumiante, se alimenta de pastos, hierbas y otras plantas de montaña.'},
-                { name: 'Tapir', type: 'Herbívoro', emoji: '🐽', description: 'Se alimenta de hojas, brotes, ramas y frutas que encuentra en los bosques.'},
-                
-                // Omnívoros (33)
-                { name: 'Oso', type: 'Omnívoro', emoji: '🐻', description: 'Su dieta es muy variada: come peces, bayas, raíces, insectos y pequeños mamíferos.'},
-                { name: 'Cerdo', type: 'Omnívoro', emoji: '🐖', description: 'En la naturaleza, su dieta incluye raíces, frutas, insectos y pequeños animales.'},
-                { name: 'Mapache', type: 'Omnívoro', emoji: '🦝', description: 'Extremadamente adaptable, come frutas, nueces, insectos, ranas y huevos.'},
-                { name: 'Gallina', type: 'Omnívoro', emoji: '🐔', description: 'Picotean semillas y plantas, pero también consumen insectos y gusanos.'},
-                { name: 'Chimpancé', type: 'Omnívoro', emoji: '🐵', description: 'Aunque su dieta es mayormente vegetariana, también cazan para comer carne.'},
-                { name: 'Ardilla', type: 'Omnívoro', emoji: '🐿️', description: 'Come nueces y semillas, pero no duda en consumir insectos y huevos.'},
-                { name: 'Humano', type: 'Omnívoro', emoji: '🧑', description: 'La especie humana consume una amplia variedad de productos vegetales y animales.'},
-                { name: 'Tejón', type: 'Omnívoro', emoji: '🦡', description: 'Su dieta incluye lombrices, insectos, pequeños mamíferos, frutas y raíces.'},
-                { name: 'Pavo', type: 'Omnívoro', emoji: '🦃', description: 'Buscan bellotas y semillas, pero también comen insectos y pequeños reptiles.'},
-                { name: 'Pato', type: 'Omnívoro', emoji: '🦆', description: 'Su dieta varía, pero incluye plantas acuáticas, semillas, insectos y caracoles.'},
-                { name: 'Orangután', type: 'Omnívoro', emoji: '🦧', description: 'Se alimenta principalmente de frutas y hojas, pero complementa su dieta con insectos.'},
-                { name: 'Cuervo', type: 'Omnívoro', emoji: '🐦‍⬛', description: 'Son aves muy inteligentes con una dieta variada: carroña, insectos, semillas y frutas.'},
-                { name: 'Rata', type: 'Omnívoro', emoji: '🐀', description: 'Son famosas por comer casi cualquier cosa, desde granos y frutas hasta basura.'},
-                { name: 'Tortuga', type: 'Omnívoro', emoji: '🐢', description: 'Dependiendo de la especie, pueden comer algas, medusas, cangrejos y peces.'},
-                { name: 'Pez Payaso', type: 'Omnívoro', emoji: '🐠', description: 'Se alimenta de pequeñas algas y de los pequeños crustáceos de su anémona.'},
-                { name: 'Mofeta', type: 'Omnívoro', emoji: '🦨', description: 'Su dieta incluye insectos, larvas, pequeños roedores, bayas y raíces.'},
-                { name: 'Jabalí', type: 'Omnívoro', emoji: '🐗', description: 'Utiliza su hocico para desenterrar raíces, y también come frutas e insectos.'},
-                { name: 'Cucaracha', type: 'Omnívoro', emoji: '🪳', description: 'Puede comer casi cualquier materia orgánica, incluyendo papel y restos de comida.'},
-                { name: 'Hormiga', type: 'Omnívoro', emoji: '🐜', description: 'Muchas son omnívoras y comen néctar, semillas, insectos y restos de animales.'},
-                { name: 'Cangrejo', type: 'Omnívoro', emoji: '🦀', description: 'Son carroñeros y depredadores que se alimentan de algas, moluscos y restos orgánicos.'},
-                { name: 'Flamenco', type: 'Omnívoro', emoji: '🦩', description: 'Filtra pequeños crustáceos y algas, consumiendo materia animal y vegetal.'},
-                { name: 'Escarabajo', type: 'Omnívoro', emoji: '🪲', description: 'Muchas especies son omnívoras y comen plantas, hongos y pequeños insectos.'},
-                { name: 'Perro', type: 'Omnívoro', emoji: '🐕', description: 'Domesticado como omnívoro, su dieta incluye carne, granos, frutas y vegetales.'},
-                { name: 'Paloma', type: 'Omnívoro', emoji: '🕊️', description: 'Se alimenta de semillas y frutas, pero también puede comer insectos.'},
-                { name: 'Camarón', type: 'Omnívoro', emoji: '🦐', description: 'Es un carroñero que se alimenta de algas, plancton y partículas en el agua.'},
-                { name: 'Ostra', type: 'Omnívoro', emoji: '🦪', description: 'Como animal filtrador, consume plancton y partículas orgánicas en el agua.'},
-                { name: 'Mosca', type: 'Omnívoro', emoji: '🪰', description: 'Puede alimentarse de casi cualquier materia orgánica en descomposición.'},
-                { name: 'Lombriz', type: 'Omnívoro', emoji: '🪱', description: 'Consume materia orgánica en descomposición que incluye restos vegetales y animales.'},
-                { name: 'Cisne', type: 'Omnívoro', emoji: '🦢', description: 'Su dieta principal son plantas acuáticas, pero ocasionalmente comen insectos y peces.'},
-                { name: 'Pájaro', type: 'Omnívoro', emoji: '🐦', description: 'Muchas especies de pájaros comen tanto semillas y frutas como insectos y gusanos.'},
-                { name: 'Emú', type: 'Omnívoro', emoji: '🦤', description: 'Se alimenta de una gran variedad de plantas e insectos, adaptándose a lo que está disponible.'},
-                { name: 'Hámster', type: 'Omnívoro', emoji: '🐹', description: 'Come semillas y granos, pero también puede comer insectos y pequeños invertebrados.'},
-                { name: 'Ratón', type: 'Omnívoro', emoji: '🐁', description: 'Es un omnívoro oportunista que come semillas, granos e insectos.'}
-            ];
-            
-            const cardBackImages = [
-                "https://i.supaimg.com/37ef4026-991a-42e1-afa0-b2db1a21237f.jpg",
-                "https://i.supaimg.com/8f73cdcd-f554-4823-914f-947c2cb6c062.jpg"
-            ];
-            const definitions = [
-                'Los <strong class="text-red-500">Carnívoros</strong> se alimentan principalmente de carne.',
-                'Los <strong class="text-blue-500">Herbívoros</strong> consumen plantas y vegetales.',
-                'Los <strong class="text-yellow-500">Omnívoros</strong> tienen una dieta variada de plantas y animales.'
-            ];
-            let definitionInterval;
-            let currentDefinitionIndex = 0;
+    <!-- ACCESO DENEGADO -->
+    <!-- CORRECCIÓN: Añadido onclick para cerrar el modal por clic exterior -->
+    <div id="access-denied-modal" class="fixed inset-0 z-[210] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-300 opacity-0 hidden" onclick="if (event.target.id === 'access-denied-modal') closeAccessDenied()">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-lg w-full mx-4 transform scale-95 transition-transform duration-300 border border-gray-100">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-50 mb-4 animate-pulse">
+                    <svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <h3 class="text-xl leading-6 font-bold text-gray-900 mb-2" id="modal-title">Acceso Restringido por Permisos</h3>
+                <div class="mt-2">
+                    <p class="text-sm text-gray-600 mb-6" id="access-denied-message">El acceso a este curso ha sido denegado.</p>
+                </div>
+                <div class="mt-2">
+                    <!-- CORRECCIÓN: El botón llama a closeAccessDenied() que cierra el modal -->
+                    <button type="button" onclick="closeAccessDenied()" class="w-full inline-flex justify-center items-center rounded-xl border border-transparent shadow-md px-4 py-3 bg-gray-800 text-base font-bold text-white hover:bg-gray-700 focus:outline-none transition-all transform hover:-translate-y-0.5 active:translate-y-0">Aceptar y Continuar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-
-            const TOTAL_ANIMALS = animals.length;
-            let gameState = {};
-            let timer;
-            let timeLeft;
-
-            const allScreens = document.querySelectorAll('#app-container > div');
-            const startScreen = document.getElementById('start-screen');
-            const gameScreen = document.getElementById('game-screen');
-            const gradesScreen = document.getElementById('grades-screen');
-            const startButton = document.getElementById('start-button');
-            const continueButton = document.getElementById('continue-button');
-            const gradesButton = document.getElementById('grades-button');
-            const backToStartButton = document.getElementById('back-to-start-button');
-            const homeButton = document.getElementById('home-button');
-            const progressDisplay = document.getElementById('progress-display');
-            const timerDisplay = document.getElementById('timer-display');
-            const deck = document.getElementById('deck');
-            const deckImage = document.getElementById('deck-image');
-            const playedCardsStack = document.getElementById('played-cards-stack');
-            const currentCardContainer = document.getElementById('current-card-container');
-            const cardInnerContainer = document.querySelector('.card-container');
-            const cardBack = document.querySelector('.card-back');
-            const optionsContainer = document.getElementById('options-container');
-            const optionButtons = document.querySelectorAll('.option-button');
-            const gradesContent = document.getElementById('grades-content');
-            const definitionDisplay = document.getElementById('definition-display');
-            const modalOverlay = document.getElementById('modal-overlay');
-            const explanationModal = document.getElementById('explanation-modal');
-            const understoodButton = document.getElementById('understood-button');
-            const feedbackModal = document.getElementById('feedback-modal');
-            const feedbackImage = document.getElementById('feedback-image');
-            const feedbackTitle = document.getElementById('feedback-title');
-            const feedbackText = document.getElementById('feedback-text');
-            const feedbackContinueButton = document.getElementById('feedback-continue-button');
-            
-            function getLocalData() {
-                const key = 'animalGameData';
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : { gameState: null, gameHistory: null };
-            }
-
-            function setLocalData(data) {
-                const key = 'animalGameData';
-                localStorage.setItem(key, JSON.stringify(data));
-            }
-
-            function showScreen(screenId) {
-                allScreens.forEach(screen => screen.classList.add('hidden'));
-                modalOverlay.classList.add('hidden');
-                document.getElementById(screenId).classList.remove('hidden');
-            }
-
-            function saveCurrentProgress() {
-                const data = getLocalData();
-                setLocalData({ ...data, gameState });
-            }
-            
-            function setupMainMenu() {
-                const data = getLocalData();
-                const gameInProgress = data.gameState && data.gameState.currentAnimalIndex < data.gameState.shuffledAnimals.length;
-                continueButton.classList.toggle('hidden', !gameInProgress);
-                
-                gradesButton.disabled = !gameInProgress && !data.gameHistory;
-                
-                showScreen('start-screen');
-            }
-
-            function rotateDefinitions() {
-                if (definitionDisplay) {
-                    definitionDisplay.innerHTML = definitions[currentDefinitionIndex];
-                    currentDefinitionIndex = (currentDefinitionIndex + 1) % definitions.length;
-                }
-            }
-
-            function startGame(isContinuation) {
-                const data = getLocalData();
-                if (isContinuation && data.gameState) {
-                    gameState = data.gameState;
-                } else {
-                    gameState = {
-                        currentAnimalIndex: 0,
-                        shuffledAnimals: [...animals].sort(() => Math.random() - 0.5),
-                        categoryCorrect: { 'Carnívoro': 0, 'Herbívoro': 0, 'Omnívoro': 0 }
-                    };
-                    const currentData = getLocalData();
-                    delete currentData.gameHistory;
-                    setLocalData(currentData);
-                }
-                showScreen('game-screen');
-                updateProgress();
-                resetCardState(true);
-                clearInterval(definitionInterval); 
-                rotateDefinitions(); 
-                definitionInterval = setInterval(rotateDefinitions, 8000);
-            }
-
-            function drawCard() {
-                if (gameState.currentAnimalIndex >= gameState.shuffledAnimals.length) {
-                    endGame(); return;
-                }
-                deck.classList.add('hidden');
-                playedCardsStack.classList.remove('hidden');
-                const animal = gameState.shuffledAnimals[gameState.currentAnimalIndex];
-                const nameClass = animal.name.length > 10 ? 'text-2xl' : 'text-3xl';
-                cardBack.innerHTML = `<div class="text-6xl sm:text-8xl mb-4">${animal.emoji}</div><p class="${nameClass} font-black text-gray-800 uppercase">${animal.name}</p>`;
-                currentCardContainer.classList.remove('hidden');
-                setTimeout(() => cardInnerContainer.classList.add('is-flipped'), 100);
-                setTimeout(() => {
-                    optionsContainer.classList.remove('opacity-0');
-                    optionButtons.forEach(btn => btn.disabled = false);
-                    startTimer();
-                }, 600);
-            }
-            
-            function startTimer() {
-                timeLeft = 10;
-                timerDisplay.textContent = timeLeft;
-                timerDisplay.classList.remove('timer-warning', 'text-red-600');
-                timer = setInterval(() => {
-                    timeLeft--;
-                    timerDisplay.textContent = timeLeft;
-                    if(timeLeft <= 3) timerDisplay.classList.add('timer-warning', 'text-red-600');
-                    if (timeLeft === 0) {
-                        clearInterval(timer);
-                        checkAnswer(null); // Timeout
-                    }
-                }, 1000);
-            }
-
-            function checkAnswer(selectedType) {
-                clearInterval(timer);
-                optionButtons.forEach(btn => btn.disabled = true);
-                
-                if (selectedType === null) { // Timeout logic
-                    const timedOutAnimal = gameState.shuffledAnimals.splice(gameState.currentAnimalIndex, 1)[0];
-                    gameState.shuffledAnimals.push(timedOutAnimal);
-                    saveCurrentProgress();
+    <!-- MODAL DE GUÍA/TUTORIAL (Ancho Aumentado, Scrollbar Oculta, Contenido Refinado) -->
+    <!-- CORRECCIÓN: Añadido onclick para cerrar el modal por clic exterior -->
+    <div id="tutorial-modal" class="fixed inset-0 z-[280] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-200 hidden" onclick="if (event.target.id === 'tutorial-modal') closeTutorialModal()">
+        <!-- MODIFICADO: max-w-4xl (más ancho) -->
+        <div class="bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl w-full max-w-4xl mx-4 transform scale-95 transition-transform duration-200 overflow-hidden" id="tutorial-modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4 border-b pb-3">
+                    <h3 class="text-2xl font-black text-montessori-blue font-montserrat leading-tight">Guía y Propósito del Sistema</h3>
+                    <button onclick="closeTutorialModal()" class="p-2 hover:bg-gray-100 rounded-full text-gray-500 hover:text-red-500 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <!-- APLICADO: hide-scrollbar y will-change-scroll en el contenido. max-h reducido para evitar scroll -->
+                <div class="w-full max-h-[60vh] overflow-y-auto hide-scrollbar will-change-scroll">
                     
-                    deck.classList.add('animate-shake');
-                    setTimeout(() => {
-                        deck.classList.remove('animate-shake');
-                        resetCardState(false);
-                    }, 820);
-                    return;
-                }
+                    <h4 class="text-base font-bold text-gray-800 mb-2 mt-2">Propósito de la Herramienta</h4>
+                    <p class="text-sm text-gray-600 mb-4">El <span class="font-bold">Sistema de Gestión de Notas Pinceladas Montessori</span> fue diseñado para centralizar y agilizar el proceso de calificación y emisión de boletines. Su principal objetivo es simplificar la carga administrativa del personal docente, permitiendo un acceso <span class="font-bold">rápido</span> y <span class="font-bold">seguro</span> a la información académica esencial.</p>
+
+                    <h4 class="text-base font-bold text-gray-800 mb-2 mt-4">Funcionalidades Principales</h4>
+                    <ul class="list-disc list-inside text-xs text-gray-600 space-y-2 ml-4">
+                        <li>Solo los usuarios <span class="font-bold">autorizados</span> (administradores y profesores con grupos asignados) pueden visualizar y editar la información, garantizando la confidencialidad de los datos.</li>
+                        <li>El sistema muestra de forma <span class="font-bold">dinámica</span> solo los grupos a los que tiene acceso su perfil, facilitando una navegación enfocada y pertinente.</li>
+                        <li>Se permite abrir directamente el documento de calificación (<span class="font-bold">Boletín</span>) de cada estudiante para su edición y gestión inmediata.</li>
+                        <li>El indicador de <span class="font-bold">Estado de Conexión</span> en la cabecera confirma en tiempo real la comunicación activa con la base de datos central.</li>
+                        <li>El banner de <span class="font-bold">Notificaciones Importantes</span> en la parte superior alerta sobre fechas límite o avisos cruciales del centro.</li>
+                    </ul>
+
+                    <h4 class="text-base font-bold text-gray-800 mb-2 mt-4">Guía de Manejo (Tutorial Rápido)</h4>
+                    <ol class="list-decimal list-inside text-xs text-gray-600 space-y-2 ml-4">
+                        <li>Ingrese su usuario y contraseña. Si la base de datos está desconectada, el indicador de estado en la cabecera lo notificará.</li>
+                        <li>En la pantalla principal, haga clic en la tarjeta del grado al que desea acceder.</li>
+                        <li>En la lista de estudiantes, puede usar el campo de <span class="font-bold">búsqueda</span> para encontrar rápidamente a un alumno. Para calificar, haga clic en la <span class="font-bold">barra completa</span> del alumno.</li>
+                        <li>Use el botón <span class="font-bold">"Seleccionar Grado"</span> para cambiar a otro de sus grupos sin necesidad de volver al inicio.</li>
+                        <li>Es <span class="font-bold">obligatorio</span> cerrar sesión al finalizar para proteger la confidencialidad de la información.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL BOLETÍN -->
+    <!-- CORRECCIÓN: Añadido onclick para cerrar el modal por clic exterior -->
+    <div id="bulletin-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black/80 backdrop-blur-sm opacity-0" onclick="if (event.target.id === 'bulletin-modal') closeBulletinModal()">
+        <!-- MEJORA UI: Glassmorphism en el fondo, contenido blanco -->
+        <div class="bg-white/95 w-[95%] h-[90%] md:w-[90%] md:h-[90%] rounded-2xl shadow-2xl flex flex-col overflow-hidden transform scale-100" id="bulletin-modal-content">
+            <div class="flex justify-between items-center px-6 py-3 bg-white border-b border-gray-200">
+                <div class="flex items-center gap-3">
+                    <div class="bg-montessori-blue/10 p-2 rounded-lg">
+                        <svg class="w-5 h-5 text-montessori-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-lg">Editor de Boletín</h3>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="close-bulletin-btn" class="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-red-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 bg-gray-100 relative">
+                 <!-- MODIFICADO: Estructura del loader para la nueva animación secuencial -->
+                 <div id="iframe-loader" class="absolute inset-0 flex items-center justify-center bg-white z-10 transition-opacity duration-300">
+                    <div class="flex flex-col items-center gap-2">
+                        <!-- Ícono para animación de carga -->
+                        <svg id="loader-icon" class="w-10 h-10 text-montessori-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transition: color 0.3s ease;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <!-- Texto de estado dinámico -->
+                        <span id="loader-status-text" class="text-sm font-bold text-montessori-blue whitespace-nowrap">Cargando documento...</span>
+                    </div>
+                 </div>
+                 <!-- OPTIMIZACIÓN DE CARGA: Se eliminó loading="lazy" para forzar la carga inmediata del Iframe al abrir el modal. -->
+                 <iframe id="bulletin-iframe" class="w-full h-full border-0" allow="autoplay"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================ -->
+    <!-- MODAL CALENDARIO PRINCIPAL -->
+    <!-- ================================ -->
+    <!-- CORRECCIÓN: Añadido onclick para cerrar el modal por clic exterior -->
+    <div id="calendar-modal" class="fixed inset-0 z-[260] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-200 hidden" onclick="if (event.target.id === 'calendar-modal') closeCalendarModal()">
+        <!-- Contenido Modal -->
+        <div class="bg-white/90 backdrop-blur-md w-full max-w-5xl rounded-3xl shadow-card border border-gray-200 overflow-hidden flex flex-col md:flex-row h-auto md:h-[500px] mx-4 transform scale-95 transition-transform duration-200" id="calendar-modal-content">
+            <!-- BOTÓN CERRAR -->
+            <button onclick="closeCalendarModal()" class="absolute top-4 right-4 z-20 p-2 bg-white/80 hover:bg-white rounded-full text-gray-500 hover:text-red-500 transition-colors shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <!-- PANEL IZQUIERDO -->
+            <div class="w-full md:w-1/3 bg-gray-50 p-6 md:p-8 flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-100 relative">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-montessori-blue to-montessori-red"></div>
                 
-                const animal = gameState.shuffledAnimals[gameState.currentAnimalIndex];
-                const isCorrect = selectedType === animal.type;
+                <div class="h-4 mb-6"></div>
 
-                if (isCorrect) {
-                    gameState.categoryCorrect[animal.type] = (gameState.categoryCorrect[animal.type] || 0) + 1;
-                    document.body.style.boxShadow = 'inset 0 0 0 15px #16a34a';
-                    setTimeout(() => { document.body.style.boxShadow = 'none'; }, 400);
-                    setTimeout(continueGame, 500);
-                } else {
-                    showFeedbackModal();
-                }
-            }
-            
-            function showFeedbackModal() {
-                const animal = gameState.shuffledAnimals[gameState.currentAnimalIndex];
-                feedbackImage.innerHTML = animal.emoji;
-                feedbackTitle.textContent = `Incorrecto. Era ${animal.type}.`;
-                feedbackTitle.className = `text-3xl font-black mb-2 text-red-600`;
-                feedbackText.textContent = animal.description;
-                
-                modalOverlay.classList.remove('hidden');
-                explanationModal.classList.add('hidden');
-                feedbackModal.classList.remove('hidden');
-            }
+                <div class="flex flex-col items-start gap-2 mb-6 md:mb-0">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Calendario Académico</span>
+                    <div class="flex items-center gap-1">
+                        <button id="calPrevBtn" class="cal-nav-btn">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <div class="flex flex-col w-40 items-center text-center justify-center h-12">
+                            <h2 id="calMonthDisplay" class="text-xl font-black text-montessori-blue leading-none font-montserrat w-full whitespace-nowrap transition-all duration-200">...</h2>
+                            <span id="calYearDisplay" class="text-sm font-semibold text-montessori-red leading-tight w-full">...</span>
+                        </div>
+                        <button id="calNextBtn" class="cal-nav-btn">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-row md:flex-col flex-wrap gap-3 text-xs text-gray-600 mt-auto">
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-montessori-blue"></div> <span>Hoy</span></div>
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-red-100 border border-red-300"></div> <span>Feriado</span></div>
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-100 border border-blue-300"></div> <span>Actividad</span></div>
+                </div>
+            </div>
+            <!-- PANEL DERECHO -->
+            <div class="w-full md:w-2/3 p-6 md:p-8 flex flex-col h-full">
+                <div class="grid grid-cols-7 mb-2">
+                    <div class="text-center text-[10px] font-bold text-montessori-red uppercase tracking-widest">Dom</div>
+                    <div class="text-center text-[10px] font-bold text-montessori-blue uppercase tracking-widest">Lun</div>
+                    <div class="text-center text-[10px] font-bold text-montessori-blue uppercase tracking-widest">Mar</div>
+                    <div class="text-center text-[10px] font-bold text-montessori-blue uppercase tracking-widest">Mié</div>
+                    <div class="text-center text-[10px] font-bold text-montessori-blue uppercase tracking-widest">Jue</div>
+                    <div class="text-center text-[10px] font-bold text-montessori-blue uppercase tracking-widest">Vie</div>
+                    <div class="text-center text-[10px] font-bold text-montessori-blue uppercase tracking-widest">Sáb</div>
+                </div>
+                <div class="flex-1 min-h-0">
+                    <div id="calendarGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            function continueGame() {
-                 modalOverlay.classList.add('hidden');
-                 feedbackModal.classList.add('hidden');
-                 
-                 gameState.currentAnimalIndex++;
-                 saveCurrentProgress();
+    <!-- MODAL DETALLE EVENTO (Z-Index mayor que el calendario) -->
+    <!-- CORRECCIÓN: Añadido onclick para cerrar el modal por clic exterior -->
+    <div id="event-detail-modal" class="fixed inset-0 z-[270] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 transition-opacity duration-200 hidden" onclick="if (event.target.id === 'event-detail-modal') closeEventDetailModal()">
+        <!-- MEJORA UI: Glassmorphism refinado -->
+        <div class="bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl w-full max-w-sm mx-4 transform scale-95 transition-transform duration-200 overflow-hidden" id="event-detail-content">
+            <div class="bg-montessori-blue p-5 text-white relative">
+                <button onclick="closeEventDetailModal()" class="absolute top-3 right-3 p-1 hover:bg-white/20 rounded-full transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                <h3 id="eventDetailDate" class="text-lg font-bold font-montserrat"></h3>
+            </div>
+            <div class="p-5 max-h-[60vh] overflow-y-auto hide-scrollbar" id="eventDetailBody"></div>
+            <div class="bg-gray-50 px-5 py-3 text-right">
+                <button onclick="closeEventDetailModal()" class="text-xs font-bold text-gray-600 hover:text-montessori-blue uppercase tracking-wide">Cerrar</button>
+            </div>
+        </div>
+    </div>
 
-                 updateProgress();
-                 resetCardState(false);
-            }
-            
-            function resetCardState(isFirstCard) {
-                 cardInnerContainer.classList.remove('is-flipped');
-                 optionsContainer.classList.add('opacity-0');
-
-                 const nextImageIndex = gameState.currentAnimalIndex % cardBackImages.length;
-                 deckImage.src = cardBackImages[nextImageIndex];
-
-                 setTimeout(() => {
-                    currentCardContainer.classList.add('hidden');
-                    if(!isFirstCard) playedCardsStack.classList.add('hidden');
+    <!-- APP CONTENT -->
+    <div id="app-content" class="hidden flex-col h-full w-full relative z-0 opacity-0 transition-opacity duration-1000 overflow-hidden">
+        <!-- Eliminado: grid-overlay -->
+        <div id="academic-background" class="particles-container z-0 will-change-transform"></div>
+        <!-- HEADER -->
+        <header class="bg-white/90 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50 h-14 flex-shrink-0 w-full">
+            <div class="w-full px-6 h-full flex justify-between items-center">
+                <div class="logo-container logo-sm select-none">
+                    <button onclick="openTutorialModal()" class="cursor-pointer">
+                        <div class="text-section flex flex-col items-center">
+                            <div class="text-colegio">COLEGIO</div>
+                            <div class="text-pinceladas">Pinceladas</div>
+                            <div class="text-montessori-sub">MONTESSORI</div>
+                        </div>
+                    </button>
+                </div>
+                <div class="flex items-center h-full">
+                    <!-- INFO USUARIO -->
+                    <!-- CORRECCIÓN: Usando items-center para centrar el nombre con respecto a la etiqueta -->
+                    <div class="flex flex-col items-center mr-4 justify-center text-center">
+                        <span class="text-[9px] font-bold text-gray-600 uppercase tracking-widest leading-tight">CONECTADO COMO</span>
+                        <span id="user-name-display" class="text-sm font-black text-montessori-blue leading-tight">...</span>
+                    </div>
                     
-                    if (gameState.currentAnimalIndex >= gameState.shuffledAnimals.length) endGame();
-                    else {
-                        if (isFirstCard) drawCard();
-                        else deck.classList.remove('hidden');
-                    }
-                 }, 400);
-            }
-            
-            function updateProgress() {
-                const progress = gameState.currentAnimalIndex + 1;
-                const total = gameState.shuffledAnimals.length;
-                progressDisplay.textContent = `${progress > total ? total : progress}/${total}`;
-            }
+                    <!-- LÍNEA DIVISORIA 1 -->
+                    <div class="h-6 w-px bg-gray-200 mx-3"></div>
 
-            function endGame() {
-                clearInterval(definitionInterval); 
-                const { categoryCorrect } = gameState;
-                const totalCorrect = Object.values(categoryCorrect).reduce((a, b) => a + b, 0);
-                const getAccuracy = (correct, total) => total > 0 ? Math.round((correct / total) * 100) : 0;
-                
-                const carnivoreTotal = animals.filter(a => a.type === 'Carnívoro').length;
-                const herbivoreTotal = animals.filter(a => a.type === 'Herbívoro').length;
-                const omnivoreTotal = animals.filter(a => a.type === 'Omnívoro').length;
+                    <!-- BOTONES DE NAVEGACIÓN RÁPIDA (JUNTOS) -->
+                    <div class="flex items-center gap-1">
+                        <button onclick="openCalendarModal()" class="p-2 rounded-full bg-blue-50 text-montessori-blue hover:bg-montessori-blue hover:text-white transition-all duration-200 group" title="Ver Calendario">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
 
-                const gameHistory = {
-                    general: getAccuracy(totalCorrect, TOTAL_ANIMALS),
-                    carnivore: getAccuracy(categoryCorrect['Carnívoro'] || 0, carnivoreTotal),
-                    herbivore: getAccuracy(categoryCorrect['Herbívoro'] || 0, herbivoreTotal),
-                    omnivore: getAccuracy(categoryCorrect['Omnívoro'] || 0, omnivoreTotal)
-                };
-                setLocalData({ gameState: null, gameHistory });
-                showGrades();
-            }
+                    <!-- LÍNEA DIVISORIA 2 -->
+                    <div class="h-6 w-px bg-gray-200 mx-3"></div>
 
-            function showGrades() {
-                const { gameState, gameHistory } = getLocalData();
-                document.querySelector('#grades-screen h2').textContent = `Reporte de Calificación`;
+                    <!-- NUEVO: Indicador de Base de Datos Compacto (Texto simple) -->
+                    <div class="flex items-center gap-1 group transition-colors" title="Estado de conexión con la Base de Datos">
+                        <span id="status-dot" class="w-2 h-2 rounded-full bg-gray-400 animate-pulse transition-colors"></span>
+                        <!-- ID: status-text actualizado para mostrar solo el estado -->
+                        <span id="status-text" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none">...</span>
+                    </div>
 
-                let statsToShow = null;
-                let isFinal = false;
-                let progressText = '';
+                    <!-- LÍNEA DIVISORIA 3 -->
+                    <div class="h-6 w-px bg-gray-200 mx-3"></div>
 
-                if (gameHistory) {
-                    statsToShow = gameHistory;
-                    isFinal = true;
-                } else if (gameState && gameState.currentAnimalIndex > 0) {
-                    const { categoryCorrect, shuffledAnimals, currentAnimalIndex } = gameState;
-                    const totalCorrect = Object.values(categoryCorrect).reduce((a, b) => a + b, 0);
-                    
-                    const animalsAnswered = shuffledAnimals.slice(0, currentAnimalIndex);
-                    const totalAnswered = animalsAnswered.length;
-
-                    const carnivoresAnswered = animalsAnswered.filter(a => a.type === 'Carnívoro').length;
-                    const herbivoresAnswered = animalsAnswered.filter(a => a.type === 'Herbívoro').length;
-                    const omnivoresAnswered = animalsAnswered.filter(a => a.type === 'Omnívoro').length;
-
-                    const getAccuracy = (correct, total) => total > 0 ? Math.round((correct / total) * 100) : 0;
-
-                    statsToShow = {
-                        general: getAccuracy(totalCorrect, totalAnswered),
-                        carnivore: getAccuracy(categoryCorrect['Carnívoro'] || 0, carnivoresAnswered),
-                        herbivore: getAccuracy(categoryCorrect['Herbívoro'] || 0, herbivoresAnswered),
-                        omnivore: getAccuracy(categoryCorrect['Omnívoro'] || 0, omnivoresAnswered)
-                    };
-                    progressText = ` (${totalAnswered}/${TOTAL_ANIMALS} respondidas)`;
-                }
-
-                if (!statsToShow) {
-                    gradesContent.innerHTML = `<div class="text-center py-8 px-4 col-span-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    <!-- BOTÓN CERRAR SESIÓN -->
+                    <button onclick="logout()" class="bg-red-50 hover:bg-red-100 text-red-500 font-bold text-xs px-3 py-1.5 rounded transition-all duration-200 flex items-center gap-2 group border border-transparent hover:border-red-200 uppercase tracking-wide">
+                        <span>Cerrar Sesión</span>
+                        <svg class="w-3 h-3 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                         </svg>
-                        <h3 class="mt-4 text-xl font-bold text-gray-800">No hay datos para mostrar</h3>
-                        <p class="mt-2 text-gray-600">Completa tu primera partida para ver tus calificaciones aquí.</p>
-                    </div>`;
-                } else {
-                     const renderScore = (label, score) => {
-                        const pass = score >= 65;
-                        const color = pass ? 'green' : 'red';
-                        const status = pass ? 'APROBADO' : 'MEJORABLE';
-                        return `<div class="bg-gray-100 p-4 rounded-lg"><div class="flex justify-between items-center"><span class="font-bold text-gray-700 text-lg">${label}</span><span class="font-black text-2xl text-${color}-600">${score}%</span></div><div class="w-full bg-gray-300 rounded-full h-4 mt-2"><div class="bg-${color}-500 h-4 rounded-full" style="width: ${score}%"></div></div><p class="text-right font-bold text-sm mt-1 text-${color}-600">${status}</p></div>`;
-                    };
-                    const title = isFinal ? 'Calificación General' : 'Progreso General';
-                    gradesContent.innerHTML = `
-                        ${renderScore(title + progressText, statsToShow.general)}
-                        ${renderScore('Precisión con Carnívoros', statsToShow.carnivore)}
-                        ${renderScore('Precisión con Herbívoros', statsToShow.herbivore)}
-                        ${renderScore('Precisión con Omnívoros', statsToShow.omnivore)}
-                    `;
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN -->
+        <!-- MODIFICADO: Eliminado py-6 para controlar el padding vertical dentro de las vistas -->
+        <main class="flex-1 w-full px-6 py-0 no-scrollbar overflow-y-auto hide-scrollbar bg-transparent relative z-10">
+            <div class="w-full">
+                <!-- MODIFICADO: Añadido py-6 para mantener el padding superior en la vista de inicio -->
+                <div id="view-home" class="max-w-[1440px] mx-auto fade-in h-full flex flex-col py-6 pb-8 w-full will-change-opacity">
+                    <div class="flex items-center gap-3 mb-4 pb-1">
+                        <div class="h-6 w-1.5 bg-montessori-red rounded-full"></div>
+                        <h2 class="text-lg font-bold text-montessori-red">Nivel Primaria</h2>
+                    </div>
+                    <div id="grid-primaria" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"></div>
+
+                    <div class="flex items-center gap-3 mb-4 pb-1">
+                        <div class="h-6 w-1.5 bg-montessori-blue rounded-full"></div>
+                        <h2 class="text-lg font-bold text-montessori-blue">Nivel Secundaria</h2>
+                    </div>
+                    <div id="grid-secundaria" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+                    <!-- MEJORA UI: Banner de Anuncios Estático (Texto Centrado) -->
+                    <div id="announcement-banner" class="hidden mt-8 rounded-xl overflow-hidden shadow-sm border border-montessori-red fade-in relative bg-white w-full animate-pulse-bg">
+                        <div class="flex items-center p-3">
+                            <div class="flex items-center gap-2 border-r border-montessori-red/30 pr-4 flex-shrink-0">
+                                <div class="bg-montessori-red/10 p-1.5 rounded-full">
+                                    <svg class="w-5 h-5 text-montessori-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                                </div>
+                                <span class="text-xs font-bold tracking-widest uppercase text-montessori-red">AVISO</span>
+                            </div>
+                            <!-- APLICADO: justify-center para centrar el mensaje -->
+                            <div class="flex-1 min-w-0 pl-4 flex items-center justify-center"> 
+                                <p id="announcement-text" class="text-sm font-semibold text-montessori-blue text-center">...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-students" class="hidden fade-in w-full will-change-opacity">
+                    <div class="w-full"> 
+                        
+                        <!-- INICIO: CONTENEDOR FIJO DE LA CABECERA (Breadcrumbs, Título y Controles) -->
+                        <div class="sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-gray-100 pt-6 pb-4">
+                            <!-- MEJORA UX: Breadcrumbs y Selector Rápido de Grado -->
+                            <!-- MODIFICADO: mb-6 cambiado a mb-4 -->
+                            <div class="flex items-center gap-2 mb-4 text-sm text-gray-600">
+                                <button onclick="showHome()" class="hover:text-montessori-blue hover:underline flex items-center gap-1 font-medium transition-colors breadcrumb-link">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                                    Inicio
+                                </button>
+                                <span>/</span>
+                                <span id="breadcrumb-level" class="font-medium">...</span>
+                                <span>/</span>
+                                <span id="breadcrumb-grade" class="font-bold text-montessori-blue">...</span>
+                            </div>
+                            
+                            <div class="w-full">
+                                <!-- MODIFICADO: Eliminado mb-4 del contenedor de controles -->
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                    <!-- CONTENEDOR FLEX PARA BOTÓN DESPLEGABLE Y BUSCADOR -->
+                                    <div id="grade-quick-switcher" class="relative w-full sm:w-auto">
+                                        <!-- Botón de activación del Dropdown -->
+                                        <button onclick="toggleSwitcher()" 
+                                                id="switcher-button" 
+                                                class="w-full sm:w-64 bg-white border border-gray-200 text-gray-800 font-semibold py-2.5 px-4 rounded-lg flex justify-between items-center transition-colors hover:bg-gray-50 active:bg-gray-100 shadow-sm">
+                                            <span id="current-grade-label" class="truncate">Seleccionar Grado</span>
+                                            <svg class="w-4 h-4 text-gray-400 transform transition-transform duration-150 flex-shrink-0 ml-2" id="switcher-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        </button>
+                                        
+                                        <!-- Menú Desplegable (insertado por JS) -->
+                                        <div id="switcher-dropdown" class="hidden opacity-0 transform transition-all duration-200 ease-out flex flex-col hide-scrollbar">
+                                            <!-- Contenido insertado por renderGradeSelector() -->
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- BUSCADOR (AHORA MEJOR UBICADO) -->
+                                    <div class="relative w-full sm:w-64">
+                                        <input type="text" id="student-search-input" placeholder="Buscar estudiante..." class="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border border-gray-200 focus:border-montessori-blue focus:ring-montessori-blue/40 outline-none transition-all duration-300">
+                                        <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    </div>
+                                    <!-- CONTENEDOR DE CARGA ELIMINADO PARA EVITAR SHIFT -->
+                                    <div id="loading-indicator" class="hidden flex items-center gap-2 text-montessori-blue">
+                                        <span class="text-xs font-medium loading-text">Actualizando</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FIN: CONTENEDOR FIJO DE LA CABECERA -->
+                        
+                        <!-- Lista de Estudiantes (Contenido Scrollable) -->
+                        <div id="students-list-container" class="space-y-2 pt-4 pb-8"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-white/90 backdrop-blur-sm border-t border-gray-200 py-6 mt-auto flex-shrink-0 w-full z-10">
+            <div class="text-center text-[10px] sm:text-xs text-gray-600">
+                <a href="https://cjce21.github.io/PORTAFOLIO/" target="_blank" class="animate-pulse-color font-medium transition-colors hover:text-montessori-blue hover:underline" title="Visitar Portafolio">
+                    © 2025 Sistema de Calificaciones - Desarrollado por Didac-Click Group.
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // La URL de API anterior ha caducado. La he reemplazado por la última versión funcional.
+        const API_URL = "https://script.google.com/macros/s/AKfycbzcj7pjOOF39HJJW7N3ShylQrwHK8tloToznQKNgfHCFVedmKnK8kmwuq8omoXNNTL-/exec"; 
+        
+        // --- CAMBIO CLAVE: Caching persistente con localStorage y versión ---
+        const CACHE_KEY = 'pinceladas_cache_students'; 
+        const CACHE_VERSION = 'v1.1'; // Incremento de versión para forzar la actualización de cache si la estructura cambia
+        
+        // --- ELEMENTOS GENERALES ---
+        const loginScreen = document.getElementById('login-screen');
+        const loginCard = document.getElementById('login-card');
+        const quoteContainer = document.getElementById('quote-container');
+        const quoteText = document.getElementById('quote-text');
+        const appContent = document.getElementById('app-content');
+        const userNameDisplay = document.getElementById('user-name-display');
+        const loginStatusContainer = document.getElementById('login-status-container');
+        const loginStatusText = document.getElementById('login-status-text');
+        const btnLogin = document.getElementById('btn-login');
+        const btnText = document.getElementById('btn-text');
+        const btnLoader = document.getElementById('btn-loader');
+        const timeoutScreen = document.getElementById('timeout-screen');
+        const accessDeniedModal = document.getElementById('access-denied-modal');
+        const accessDeniedTitle = document.getElementById('modal-title'); 
+        const accessDeniedMessage = document.getElementById('access-denied-message'); 
+        const initialLoader = document.getElementById('initial-loader');
+        
+        // --- NUEVOS ELEMENTOS DE CIERRE ---
+        const closureScreen = document.getElementById('closure-screen');
+        const closureTitle = document.getElementById('closure-title');
+        const closureMessageEl = document.getElementById('closure-message');
+        
+        // --- VISTA DE ESTUDIANTES ---
+        const studentsContainer = document.getElementById('students-list-container');
+        const searchInput = document.getElementById('student-search-input');
+        // const loadingIndicator = document.getElementById('loading-indicator'); // ELIMINADO para evitar reflow
+
+        // --- BREADCRUMBS ---
+        const breadcrumbLevel = document.getElementById('breadcrumb-level');
+        const breadcrumbGrade = document.getElementById('breadcrumb-grade');
+        const gradeQuickSwitcher = document.getElementById('grade-quick-switcher');
+        
+        // --- ELEMENTOS DEL NUEVO DROPDOWN ---
+        const switcherButton = document.getElementById('switcher-button');
+        const currentGradeLabel = document.getElementById('current-grade-label');
+        const switcherIcon = document.getElementById('switcher-icon');
+        const switcherDropdown = document.getElementById('switcher-dropdown');
+
+        // --- ANUNCIO ---
+        const announcementBanner = document.getElementById('announcement-banner');
+        const announcementText = document.getElementById('announcement-text');
+
+        // --- MODALES ---
+        const tutorialModal = document.getElementById('tutorial-modal');
+        const bulletinModal = document.getElementById('bulletin-modal');
+        const bulletinIframe = document.getElementById('bulletin-iframe');
+        const iframeLoader = document.getElementById('iframe-loader');
+        const closeBulletinBtn = document.getElementById('close-bulletin-btn');
+        // Nuevos elementos para la animación de carga secuencial
+        const loaderIcon = document.getElementById('loader-icon');
+        const loaderStatusText = document.getElementById('loader-status-text');
+
+
+        // --- MODAL CALENDARIO ---
+        const calendarModal = document.getElementById('calendar-modal');
+        const calendarModalContent = document.getElementById('calendar-modal-content');
+        const calMonthDisplay = document.getElementById('calMonthDisplay');
+        const calYearDisplay = document.getElementById('calYearDisplay');
+        const calendarGrid = document.getElementById('calendarGrid');
+        const calPrevBtn = document.getElementById('calPrevBtn');
+        const calNextBtn = document.getElementById('calNextBtn');
+        const eventDetailModal = document.getElementById('event-detail-modal');
+        const eventDetailDate = document.getElementById('eventDetailDate');
+        const eventDetailBody = document.getElementById('eventDetailBody');
+
+        // --- VARIABLES DE ESTADO ---
+        let userPermissions = []; 
+        let currentGradeData = []; // Almacena la lista completa del grado actual
+        let currentGradeName = '';
+        let currentGradeLevel = '';
+        
+        // --- VARIABLES DE SESIÓN Y TIMEOUT ---
+        let inactivityTimer;
+        let currentUserTimeoutMs = 1.5 * 60 * 1000; 
+        let statusInterval; 
+        let iframeActivityChecker; // NUEVA: Contador de actividad en el Iframe
+        let loaderTimeout; // Timeout para la animación de carga secuencial
+
+
+        // --- DATOS GLOBALES ---
+        // Definición ÚNICA de las constantes de grados
+        const gradosPrimaria = [
+            { nombre: "1º Grado", nivel: "Primaria", icon: "1" },
+            { nombre: "2º Grado", nivel: "Primaria", icon: "2" },
+            { nombre: "3º Grado", nivel: "Primaria", icon: "3" },
+            { nombre: "4º Grado", nivel: "Primaria", icon: "4" },
+            { nombre: "5º Grado", nivel: "Primaria", icon: "5" },
+            { nombre: "6º Grado", nivel: "Primaria", icon: "6" }
+        ];
+
+        const gradosSecundaria = [
+            { nombre: "1º Grado", nivel: "Secundaria", icon: "I" },
+            { nombre: "2º Grado", nivel: "Secundaria", icon: "II" },
+            { nombre: "3º Grado", nivel: "Secundaria", icon: "III" }
+        ];
+
+        // Declaración ÚNICA de allGradesMaster basada en las anteriores
+        const allGradesMaster = [...gradosPrimaria, ...gradosSecundaria];
+        
+        let allAccessibleGrades = []; // Lista de todos los grados a los que el usuario tiene acceso
+        let isSwitcherOpen = false; // Estado del nuevo selector desplegable
+        const gradePromises = {}; // Caché de promesas de datos de estudiantes (ya no es vital, pero se mantiene para prefetch)
+
+        let currentCalMonth = new Date().getMonth();
+        let currentCalYear = new Date().getFullYear();
+
+        // --- DATOS GLOBALES (CALENDARIO) ---
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+        const calendarEvents = {
+            '8/13/2025': 'Bienvenida y jornada de formación y planificación docente',
+            '8/14/2025': 'Jornada de formación y planificación docente (+ Taller IA)',
+            '8/15/2025': 'Taller (SOMOS)',
+            '8/16/2025': 'Restauración de la República (No Laborable)',
+            '8/18/2025': 'Jornada de formación y planificación docente (18-20 Agosto)',
+            '8/19/2025': 'Jornada de formación y planificación docente (18-20 Agosto)',
+            '8/20/2025': 'Jornada de formación y planificación docente (18-20 Agosto)',
+            '8/21/2025': 'Jornada de formación y planificación docente + Taller Santillana',
+            '8/22/2025': 'Jornada de formación y planificación docente + Taller Actualidad',
+            '8/25/2025': 'Organización del ambiente educativo (25-28 Agosto)',
+            '8/26/2025': 'Organización del ambiente educativo (25-28 Agosto)',
+            '8/27/2025': 'Organización del ambiente educativo (25-28 Agosto)',
+            '8/28/2025': 'Organización del ambiente educativo (25-28 Agosto) + Supervisión',
+            '8/29/2025': 'Reunión padres de nuevo ingreso + Actividades Día de la Raza',
+            '9/1/2025': 'Inicio del año escolar 2025-2026 (PSC)',
+            '9/2/2025': 'Semana diagnóstica (2-4 Septiembre, PPC)',
+            '9/3/2025': 'Semana diagnóstica (2-4 Septiembre)',
+            '9/4/2025': 'Semana diagnóstica (2-4 Septiembre) + Inicio plan lectivo',
+            '9/5/2025': 'Organización de materiales + Inventario',
+            '9/8/2025': 'Día Internacional de la Alfabetización',
+            '9/12/2025': '1ER SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '9/15/2025': 'Preparativos Día del Encuentro entre Culturas',
+            '9/22/2025': 'Día de la Prevención y Atención a Emergencias',
+            '9/24/2025': 'Nuestra Señora de las Mercedes (No Laborable)',
+            '9/26/2025': 'Día Mundial de la Salud Ambiental + Reunión (APMAE)',
+            '9/29/2025': 'Día de los Derechos de la Niñez + Inicio evaluaciones mensuales',
+            '10/1/2025': 'Evaluaciones Septiembre (1-3 Octubre)',
+            '10/2/2025': 'Evaluaciones Septiembre (1-3 Octubre)',
+            '10/3/2025': 'Evaluaciones Septiembre (1-3 Octubre)',
+            '10/8/2025': 'Natalicio de G. Luperón',
+            '10/10/2025': 'Día Internacional de la Salud Mental + Encuentro entre Culturas',
+            '10/13/2025': 'Día del Encuentro entre Culturas (PPC)',
+            '10/14/2025': 'Encuentro entre Culturas (PSC y SPC)',
+            '10/16/2025': 'Día Mundial de la Alimentación',
+            '10/17/2025': 'TRIANGULAR INTERCOLEGIAL',
+            '10/21/2025': 'Natalicio de Salomé Ureña (Día del Poeta)',
+            '10/22/2025': 'Premiación Día del Poeta',
+            '10/24/2025': 'Olimpiadas de Lengua Española + Modelo ONU',
+            '10/27/2025': 'Semana de evaluación mensual Octubre del 27 al 31',
+            '10/28/2025': '2DO SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '10/31/2025': 'Claustro de Maestros + Entrega planificación',
+            '11/3/2025': 'Inicio de P2',
+            '11/6/2025': 'Día de la Constitución (Día festivo, observado el 10 de Nov)',
+            '11/7/2025': 'Día Nacional del Deporte',
+            '11/10/2025': 'Día de la Constitución (No Laborable - Fecha Observada)',
+            '11/17/2025': 'Celebración día de los abuelos y abuelas (17-20 Noviembre, Nivel Inicial)',
+            '11/18/2025': 'Día Nacional de la Familia',
+            '11/20/2025': 'Día Universal del Niño',
+            '11/21/2025': 'Entrega Primer reporte de calificaciones (Primaria segundo ciclo y Secundaria primer ciclo)',
+            '11/24/2025': 'Semana de evaluación mensual Noviembre del 24 al 27',
+            '11/25/2025': 'Día Internacional de la Eliminación de la Violencia contra la Mujer. Paseo Museo Hnas. Mirabal',
+            '11/26/2025': 'Día Nacional del Merengue',
+            '11/27/2025': '3ER SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '11/28/2025': 'Claustro docente - No docencia. Entrega planificación del mes y revisión de registros',
+            '12/3/2025': 'Día Internacional de las Personas con Discapacidad',
+            '12/5/2025': '4TO SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '12/6/2025': 'VELADA/MUSICAL DE NAVIDAD',
+            '12/10/2025': 'Día Internacional de los Derechos Humanos + Inicio evaluaciones finales (10-12 de Dic)',
+            '12/12/2025': 'Último día de docencia PSC hasta SPC. Celebraciones navideñas',
+            '12/15/2025': 'Último día de docencia PPC e Inicial. Celebraciones navideñas',
+            '12/16/2026': 'Claustro docente (ajustado por vacaciones). Entrega planificación del mes, entrega de notas en la plataforma y revisión de registros. Efemérides Enero',
+            '12/17/2026': 'Claustro docente (ajustado por vacaciones). Entrega planificación del mes, entrega de notas en la plataforma y revisión de registros. Efemérides Enero',
+            '12/18/2025': 'Fiesta de Empleados',
+            '12/19/2025': 'Fiesta de Empleados',
+            '12/25/2025': 'Día de la Navidad (No Laborable)',
+            '1/1/2026': 'Día de Año Nuevo (No Laborable)',
+            '1/5/2026': 'Día de los Santos Reyes (No Laborable)',
+            '1/6/2026': 'Día Internacional de la Educación + Retorno personal docente y administrativo',
+            '1/7/2026': 'Reinicio de la docencia',
+            '1/14/2026': '5TO SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '1/16/2026': 'Inicio elaboración feria científica (horario de la tarde - reunión)',
+            '1/21/2026': 'Nuestra Señora de la Altagracia (No Laborable)',
+            '1/26/2026': 'Día de Juan Pablo Duarte (No Laborable)',
+            '1/27/2026': 'Semana de evaluación mensual Enero del 27 al 30',
+            '1/30/2026': 'Claustro docente. Entrega planificación del mes, entrega de notas en la plataforma y revisión de registros',
+            '2/2/2026': 'Inicio P3',
+            '2/6/2026': 'Entrega Segundo reporte de calificaciones (Primaria segundo ciclo y Secundaria primer ciclo)',
+            '2/16/2026': '6TO SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '2/17/2026': 'Inicio Olimpiada Nacional de Ciencias (SPC)',
+            '2/18/2026': 'Día del Estudiante. Actividades de reconocimiento',
+            '2/19/2026': 'Inicio Olimpiadas de Matemáticas',
+            '2/23/2026': 'Semana de evaluación mensual Febrero del 23 al 26 + Semana Dominicana 23 - 26',
+            '2/24/2026': 'Acto conmemorativo Independencia Nacional (Inicial)',
+            '2/25/2026': 'Natalicio de Matías Ramón Mella + Acto conmemorativo Independencia Nacional (PSC)',
+            '2/26/2026': 'Claustro docente (ajustado por feriado) + Acto conmemorativo Independencia Nacional (SPC)',
+            '2/27/2026': 'Día de la Independencia Nacional (Feriado)',
+            '3/2/2026': 'Padre asistente (2-6 Marzo)',
+            '3/3/2026': 'Padre asistente (2-6 Marzo)',
+            '3/4/2026': 'Padre asistente (2-6 Marzo)',
+            '3/5/2026': 'Padre asistente (2-6 Marzo)',
+            '3/6/2026': 'Padre asistente (2-6 Marzo)',
+            '3/8/2026': 'Día Internacional de la Mujer',
+            '3/9/2026': 'Natalicio de Francisco del Rosario Sánchez (Actividades internas)',
+            '3/12/2026': 'Olimpiada Nacional de Ciencias Sociales + 7MO SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '3/16/2026': 'Feria científica - Exposiciones (PPC)',
+            '3/17/2026': 'Feria científica - Exposiciones (PSC)',
+            '3/18/2026': 'Feria científica - Exposiciones (SPC)',
+            '3/19/2026': 'Feria tecnológica - Exposiciones',
+            '3/20/2026': 'Concours d\'orthographe (Francés)',
+            '3/23/2026': 'Día Mundial del agua + Semana de evaluación mensual Marzo del 23 al 26',
+            '3/27/2026': 'Entrega Tercer reporte de calificaciones (Primaria segundo ciclo y Secundaria primer ciclo) (Ensobradas)',
+            '3/29/2026': 'Inicio de la Semana Santa',
+            '3/30/2026': 'Semana Santa',
+            '3/31/2026': 'Semana Santa',
+            '4/1/2026': 'Semana Santa',
+            '4/2/2026': 'Jueves Santo',
+            '4/3/2026': 'Viernes Santo (No Laborable)',
+            '4/4/2026': 'Sábado Santo',
+            '4/6/2026': 'Claustro docente + Entrada personal docente y de apoyo',
+            '4/7/2026': 'Reinicio de la docencia',
+            '4/8/2026': 'Evaluaciones diagnósticas (8-10 Abril)',
+            '4/9/2026': 'Día del Deporte (Actividades escolares) + Evaluaciones diagnósticas (8-10 Abril)',
+            '4/10/2026': 'Evaluaciones diagnósticas (8-10 Abril)',
+            '4/12/2026': 'Pasadía Familiar',
+            '4/15/2026': 'Día Mundial del Arte',
+            '4/21/2026': 'Triangular intercolegial',
+            '4/22/2026': 'Día Mundial de la Madre Tierra + Paseo Zoo (Inicial y PPC)',
+            '4/23/2026': 'Día Mundial del Libro + Paseo Biblioteca Nacional (Sala Prof. Juan Bosch)',
+            '4/24/2026': 'Spelling Bee (Inglés)',
+            '4/27/2026': 'Semana de evaluación mensual Abril del 27 al 29',
+            '4/28/2026': '9NO SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '4/30/2026': 'Claustro docente + Entrega planificación del mes, entrega de notas en la plataforma y revisión de registros',
+            '5/1/2026': 'Día Internacional del Trabajo (No Laborable)',
+            '5/5/2026': 'Inicio talleres de arte para madres',
+            '5/15/2026': 'Paseo Museo de Historia Natural (Primaria y Secundaria)',
+            '5/18/2026': 'ERCE (18-30)',
+            '5/21/2026': '10MO SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '5/25/2026': 'Semana de evaluación mensual Mayo del 25 al 27 + Día de la Madre. Actividades alusivas (25-29 Mayo)',
+            '5/26/2026': 'Día de la Madre. Actividades alusivas',
+            '5/27/2026': 'Día de la Madre. Actividades alusivas',
+            '5/28/2026': 'Día de la Madre. Actividades alusivas',
+            '5/29/2026': 'Día de la Madre. Actividades alusivas',
+            '6/1/2026': 'Repasos de evaluaciones finales (1-3 Junio)',
+            '6/2/2026': 'Repasos de evaluaciones finales (1-3 Junio)',
+            '6/3/2026': 'Repasos de evaluaciones finales (1-3 Junio)',
+            '6/4/2026': 'Corpus Christi (No Laborable)',
+            '6/5/2026': 'Claustro docente (No docencia) + Revisión final registros',
+            '6/8/2026': 'Evaluaciones finales (8-10 Junio, Salida 11 A.M) + 11VO SIMULACRO DE PREVENCIÓN DE SISMOS',
+            '6/9/2026': 'Evaluaciones finales (8-10 Junio, Salida 11 A.M)',
+            '6/10/2026': 'Evaluaciones finales (8-10 Junio, Salida 11 A.M)',
+            '6/11/2026': 'Preparativos graduación (No docencia)',
+            '6/12/2026': 'Graduaciones (pre primario y sexto de primaria)',
+            '6/17/2026': 'Entrega Boletines finales (PSC y SPC)',
+            '6/18/2026': 'Entrega Boletines finales (PPC y Montessori B)',
+            '6/19/2026': 'Entrega Boletines finales (Inicial)',
+            '6/30/2026': 'Día del Maestro (República Dominicana)'
+        };
+
+        const nonWorkingDays = new Set([
+            '8/16/2025', '9/24/2025', '11/10/2025', '12/25/2025',
+            '1/1/2026', '1/5/2026', '1/21/2026', '1/26/2026',
+            '2/27/2026', '4/3/2026', '5/1/2026', '6/4/2026'
+        ]);
+
+        const educationalHolidays = new Set([
+            '1/6/2026', '6/30/2025', '6/30/2026', '4/23/2025', '4/23/2026',
+            '9/8/2025', '9/8/2026', '2/18/2026', '11/10/2025', '11/10/2026', // <--- CORRECCIÓN DE TYPOS AQUÍ
+            '10/10/2025', '10/10/2026', '10/16/2025', '10/16/2026', '10/21/2025',
+            '10/21/2026', '12/3/2025', '12/3/2026', '12/10/2025', '12/10/2026',
+            '11/20/2025', '11/20/2026', '4/15/2026', '4/22/2026' // <--- CORRECCIÓN DE TYPOS AQUÍ
+        ]);
+
+        const holyWeekDays = new Set([
+            '3/29/2026', '3/30/2026', '3/31/2026', '4/1/2026', '4/2/2026',
+            '4/3/2026', '4/4/2026'
+        ]);
+
+        // --- FUNCIONES DE CACHÉ PERSISTENTE (localStorage) ---
+
+        function getCachedData() {
+            try {
+                const cache = localStorage.getItem(CACHE_KEY); // Usa localStorage
+                const data = cache ? JSON.parse(cache) : { version: CACHE_VERSION };
+                
+                // Borrar caché si la versión es incorrecta (estructura de datos antigua)
+                if (data.version !== CACHE_VERSION) {
+                    console.warn(`[Cache] Versión de caché antigua (${data.version}). Limpiando y regenerando.`);
+                    localStorage.removeItem(CACHE_KEY);
+                    return { version: CACHE_VERSION };
                 }
-                showScreen('grades-screen');
+                return data;
+            } catch (e) {
+                console.error("Error retrieving cache:", e);
+                localStorage.removeItem(CACHE_KEY); // Limpiar caché corrupto
+                return { version: CACHE_VERSION };
             }
+        }
+
+        function setCachedData(gradeKey, data) {
+            try {
+                const cache = getCachedData();
+                // Guardamos los estudiantes y un timestamp (opcional, pero útil)
+                cache[gradeKey] = { students: data, timestamp: new Date().getTime() }; 
+                cache.version = CACHE_VERSION;
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); // Usa localStorage
+            } catch (e) {
+                console.error("Error setting cache:", e);
+            }
+        }
+
+        function loadFromCache(gradeKey) {
+            const cache = getCachedData();
+            // Retorna el array de estudiantes o un array vacío
+            return cache[gradeKey] ? cache[gradeKey].students : [];
+        }
+
+        async function fetchFromNetwork(grade, level, gradeKey) {
+            console.log(`[Cache Sync] Buscando datos nuevos para ${gradeKey}...`);
+            try {
+                const response = await fetch(`${API_URL}?action=getStudents&grade=${encodeURIComponent(grade)}&level=${encodeURIComponent(level)}&t=${new Date().getTime()}`, { redirect: 'follow' });
+                if (!response.ok) throw new Error("Network request failed");
+                
+                const data = await response.json();
+                
+                if (data && Array.isArray(data)) {
+                    // Guardar en caché la nueva data
+                    setCachedData(gradeKey, data);
+                    return data;
+                }
+                return [];
+            } catch (error) {
+                console.warn(`[Cache Sync] Error al obtener datos de red para ${gradeKey}:`, error);
+                return [];
+            }
+        }
+
+        // --- FIN FUNCIONES DE CACHÉ ---
+
+
+        function initDynamicTexts(name) {
+            if (name) userNameDisplay.textContent = name;
+            accessDeniedTitle.textContent = 'Acceso Restringido por Permisos';
+            accessDeniedMessage.textContent = 'El acceso a este curso ha sido denegado. El perfil de usuario actual no tiene asignados los permisos necesarios para visualizar la información de este grado. Para asistencia o revisión de permisos, contacte al Tío Christopher.';
+            accessDeniedModal.querySelector('button').textContent = 'Aceptar y Continuar'; 
+            document.getElementById('timeout-title').textContent = 'Sesión Finalizada por Seguridad';
+            document.getElementById('timeout-message').textContent = 'Para proteger la confidencialidad de la información académica, la sesión ha finalizado tras detectar un periodo de inactividad. Presione el botón para restablecer el acceso.';
+            document.querySelector('#timeout-content button').textContent = 'Restablecer Sesión';
+        }
+
+        const quotes = [
+            "Lo más importante es que lo más importante sea lo más importante.",
+            "Empieza cada día con un fin en mente.",
+            "Busca primero entender, para luego ser entendido.",
+            "La mejor forma de predecir tu futuro es creándolo.",
+            "Sinergiza: El todo es más grande que la suma de sus partes.",
+            "Sé proactivo: Tú eres el arquitecto de tu destino.",
+            "Afila la sierra: Nunca dejes de aprender y crecer."
+        ];
+
+        function matchWidths() {
+            // Ajuste del logo principal (login y header)
+            document.querySelectorAll('.logo-container').forEach(container => {
+                const pinceladas = container.querySelector('.text-pinceladas');
+                const montessori = container.querySelector('.text-montessori-sub');
+                if (pinceladas && montessori) {
+                    montessori.style.width = `${pinceladas.offsetWidth}px`;
+                }
+            });
+        }
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            // Solo reinicia si el usuario está logueado y no en la pantalla de timeout O cierre
+            if (loginScreen.classList.contains('hidden') && timeoutScreen.classList.contains('hidden') && closureScreen.classList.contains('hidden')) { 
+                inactivityTimer = setTimeout(() => handleSessionTimeout(), currentUserTimeoutMs);
+            }
+        }
+
+        // INICIO DE LA CORRECCIÓN: Lógica para reanudar animaciones al volver a la pestaña.
+        function handleVisibilityChange() {
+            const isStudentView = !document.getElementById('view-students').classList.contains('hidden');
             
-            function init() {
-                explanationModal.classList.remove('hidden');
-                modalOverlay.classList.remove('hidden');
-                feedbackModal.classList.add('hidden');
+            // Si la pestaña está oculta O estamos en la vista de estudiantes, desactivar animaciones.
+            if (document.hidden || isStudentView) {
+                document.body.classList.add('high-performance-mode');
+            } else {
+                // CORRECCIÓN: Si la pestaña es visible y NO estamos en la vista de estudiantes (es decir,
+                // estamos en el login o en el Home), reactivar las animaciones de fondo.
+                document.body.classList.remove('high-performance-mode');
+            }
+        }
+        // FIN DE LA CORRECCIÓN.
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        function handleSessionTimeout() {
+            // Limpieza de intervalos y timeouts
+            clearTimeout(inactivityTimer);
+            if (statusInterval) clearInterval(statusInterval);
+            if (iframeActivityChecker) clearInterval(iframeActivityChecker); // NUEVO: Limpiar el verificador de Iframe
+            if (loaderTimeout) clearTimeout(loaderTimeout); // Limpiar timeout de la animación de carga
+
+            // Cierra modales
+            closeAllModals();
+
+            // IMPORTANTE: Reactivar las animaciones de fondo (quitar modo alto rendimiento)
+            document.body.classList.remove('high-performance-mode');
+
+            sessionStorage.removeItem('pinceladas_session');
+            localStorage.removeItem(CACHE_KEY); // Limpiar caché persistente al cerrar sesión
+            timeoutScreen.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                 document.getElementById('timeout-content').classList.remove('scale-95');
+                 document.getElementById('timeout-content').classList.add('scale-100');
+                 timeoutScreen.classList.remove('opacity-0');
+            });
+            document.getElementById('app-content').classList.add('blur-sm');
+        }
+        
+        // NUEVA FUNCIÓN: Manejo del CIERRE DE PROCESAMIENTO
+        function handleClosure(message) {
+            // Limpieza de intervalos y timeouts
+            clearTimeout(inactivityTimer);
+            if (statusInterval) clearInterval(statusInterval);
+            if (iframeActivityChecker) clearInterval(iframeActivityChecker); 
+            if (loaderTimeout) clearTimeout(loaderTimeout); 
+            
+            // Cierra modales
+            closeAllModals();
+
+            document.body.classList.remove('high-performance-mode');
+            
+            // 1. Ocultar la interfaz de la aplicación si está visible
+            if (!appContent.classList.contains('hidden')) {
+                appContent.classList.add('hidden'); 
+            }
+            // 2. Ocultar la pantalla de login si está visible
+            if (!loginScreen.classList.contains('hidden')) {
+                loginScreen.classList.add('hidden'); 
+            }
+            // También aseguramos que el preloader inicial esté oculto si aún estaba por alguna razón
+            if (!initialLoader.classList.contains('hidden')) {
+                 removeInitialLoader();
             }
 
-            understoodButton.addEventListener('click', () => {
-                explanationModal.classList.add('hidden');
-                modalOverlay.classList.add('hidden');
-                setupMainMenu();
+            // Aseguramos que el contenido del mensaje sea el que viene del Backend
+            closureMessageEl.textContent = message || "El sistema ha sido cerrado temporalmente por la Administración.";
+            
+            sessionStorage.removeItem('pinceladas_session');
+            localStorage.removeItem(CACHE_KEY); 
+            
+            closureScreen.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                 document.getElementById('closure-content').classList.remove('scale-95');
+                 document.getElementById('closure-content').classList.add('scale-100');
+                 closureScreen.classList.remove('opacity-0');
+            });
+            // NOTA: Se eliminó .blur-sm de app-content, ya que ahora está hidden.
+        }
+        
+        function closeAllModals() {
+            if (!bulletinModal.classList.contains('hidden')) {
+                closeBulletinModal();
+            }
+            if (!calendarModal.classList.contains('hidden')) {
+                calendarModal.classList.add('opacity-0');
+                calendarModalContent.classList.remove('scale-100');
+                calendarModalContent.classList.add('scale-95');
+                setTimeout(() => { calendarModal.classList.add('hidden'); }, 200);
+            }
+            if (!eventDetailModal.classList.contains('hidden')) {
+                closeEventDetailModal();
+            }
+            if (!tutorialModal.classList.contains('hidden')) {
+                closeTutorialModal();
+            }
+        }
+        
+        function removeInitialLoader() {
+            if(!initialLoader) return;
+            initialLoader.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                initialLoader.classList.add('hidden');
+            }, 700);
+        }
+        
+        // CORRECCIÓN DE PERMISOS: Solo se permite 'TODO'/'ADMIN' o el formato "[Grado] [Nivel]" (ej. "1º PRIMARIA")
+        function checkPermissions(gradeName, level) {
+            const sessionData = sessionStorage.getItem('pinceladas_session');
+            if (!sessionData) return false;
+            
+            const session = JSON.parse(sessionData);
+            const userPerms = (session.permissions || "").toUpperCase().trim();
+            
+            // 1. Acceso total
+            if (userPerms === 'TODO' || userPerms === 'ADMIN') return true;
+
+            const userPermsArray = userPerms.split(',').map(p => p.trim());
+            
+            // 2. Permiso por grupo: Construye la clave exacta requerida, ej: "1º PRIMARIA"
+            // Reemplaza " Grado" (con espacio) para obtener solo el número/ícono.
+            const requiredKey = `${gradeName.replace(' Grado', '').trim()} ${level}`.toUpperCase().trim(); 
+
+            // Verifica si el array de permisos del usuario contiene la clave exacta
+            if (userPermsArray.includes(requiredKey)) return true;
+
+            return false;
+        }
+
+        // CORRECCIÓN DE PERMISOS: Solo se permite 'TODO'/'ADMIN' o el formato "[Grado] [Nivel]" (ej. "1º PRIMARIA")
+        function getAccessibleGrades(permissionsString) {
+            const userPerms = permissionsString; // String con permisos en MAYÚSCULAS y separados por coma
+            
+            // 1. Acceso total
+            if (userPerms.includes('TODO') || userPerms.includes('ADMIN')) return allGradesMaster;
+
+            const userPermsArray = userPerms.split(',').map(p => p.trim());
+            
+            return allGradesMaster.filter(g => {
+                // Construye la clave exacta que debe estar en el string de permisos: "1º PRIMARIA"
+                const requiredKey = `${g.nombre.replace(' Grado', '').trim()} ${g.nivel}`.toUpperCase().trim(); 
+
+                // Verifica si el array de permisos del usuario contiene la clave exacta
+                if (userPermsArray.includes(requiredKey)) return true;
+
+                return false;
+            });
+        }
+        // FIN CORRECCIÓN DE PERMISOS
+
+        function updateLoginStatus(status, message) {
+            // VERIFICACIÓN DE NULL PARA EVITAR ERROR
+            if (!loginStatusContainer || !loginStatusText) return;
+
+            loginStatusContainer.className = 'min-h-[40px] transition-all duration-300 rounded-lg flex items-center justify-center gap-2 border px-2 py-1';
+            loginStatusText.className = 'text-xs font-bold';
+            loginStatusText.textContent = message;
+            
+            if (status === 'error') {
+                loginStatusContainer.classList.add('bg-red-50', 'border-red-200');
+                loginStatusText.classList.add('text-red-600');
+            } else if (status === 'success') {
+                loginStatusContainer.classList.add('bg-green-50', 'border-green-200');
+                loginStatusText.classList.add('text-green-600');
+            } else if (status === 'loading') {
+                loginStatusContainer.classList.add('bg-blue-50', 'border-blue-200');
+                loginStatusText.classList.add('text-blue-600');
+            } else {
+                 loginStatusContainer.classList.add('bg-gray-50', 'border-transparent');
+                 loginStatusText.classList.add('text-gray-600', 'font-medium');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('username').value;
+            const passwordInput = document.getElementById('password').value;
+            
+            updateLoginStatus('loading', 'Verificando credenciales...');
+            btnText.classList.add('opacity-0');
+            btnLoader.classList.remove('hidden');
+            btnLogin.classList.add('cursor-not-allowed');
+            btnLogin.disabled = true;
+
+            try {
+                // Conexión real a Google Apps Script
+                const response = await fetch(`${API_URL}?action=login&username=${encodeURIComponent(usernameInput)}&password=${encodeURIComponent(passwordInput)}`, {
+                    redirect: "follow"
+                });
+                
+                if (!response.ok) throw new Error("Network response was not ok");
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Obtener usernameUnique del login para el chequeo de status
+                    const sessionUsername = data.usernameUnique; 
+                    
+                    // Ahora checkSystemStatus maneja el bloqueo justo después del login
+                    const statusCheck = await checkSystemStatus(sessionUsername);
+
+                    if (statusCheck.status === 'closed') {
+                        // El sistema está cerrado y el usuario NO es admin -> Manejar Cierre
+                        handleClosure(statusCheck.message);
+                        // Restablecer el botón para no dejar el login atascado en estado 'loading' detrás del modal de cierre
+                        btnText.classList.remove('opacity-0');
+                        btnLoader.classList.add('hidden');
+                        btnLogin.classList.remove('cursor-not-allowed');
+                        btnLogin.disabled = false;
+                        return; 
+                    }
+                    
+                    updateLoginStatus('success', '¡Acceso Autorizado! Redirigiendo...');
+                    currentUserTimeoutMs = (data.timeout || 1.5) * 60 * 1000;
+                    
+                    const perms = (data.permissions || '').toUpperCase();
+                    // Aseguramos que userPermissions es un array de cadenas de texto
+                    userPermissions = perms.split(',').map(p => p.trim());
+                    allAccessibleGrades = getAccessibleGrades(perms); // Pasamos el string de permisos
+
+                    sessionStorage.setItem('pinceladas_session', JSON.stringify({
+                        auth: true,
+                        name: data.name,
+                        permissions: perms, 
+                        timeout: data.timeout,
+                        loginTime: new Date().getTime(),
+                        username: sessionUsername // Guardamos el username único para el heartbeat
+                    }));
+                    
+                    setTimeout(() => prefetchGradesData(), 300); // Lanzamos la precarga de todos los grupos
+                    setTimeout(() => loadAnnouncements(), 800); 
+
+                    setTimeout(() => {
+                        unlockInterface(data.name);
+                    }, 1000);
+                } else {
+                    // Si data.success es false (credenciales incorrectas)
+                    throw new Error('Credenciales'); 
+                }
+            } catch (error) {
+                if (error.message === 'Credenciales') {
+                    updateLoginStatus('error', 'Credenciales incorrectas');
+                } else {
+                    console.warn("Login fetch error:", error);
+                    updateLoginStatus('error', 'Error de conexión. Intente de nuevo.');
+                }
+                if (navigator.vibrate) navigator.vibrate(200);
+            } finally {
+                document.getElementById('password').value = '';
+                btnText.classList.remove('opacity-0');
+                btnLoader.classList.add('hidden');
+                btnLogin.classList.remove('cursor-not-allowed');
+                btnLogin.disabled = false;
+            }
+        }
+
+        // --- MEJORA: Prefetch de Datos a Cache (Llenado de localStorage) ---
+        function prefetchGradesData() {
+            // Es importante que allAccessibleGrades esté actualizado antes de esta llamada
+            allAccessibleGrades.forEach(g => {
+                const key = `${g.nombre}-${g.nivel}`;
+                const cached = loadFromCache(key);
+
+                // Solo si no hay datos en caché, iniciamos un fetch silencioso para poblarlo
+                if (cached.length === 0) {
+                     console.log(`[Prefetch] Iniciando carga silenciosa de ${key} (Caché vacío)`);
+                     // Lanzamos el fetch. El resultado se guardará directamente en localStorage dentro de fetchFromNetwork.
+                     fetchFromNetwork(g.nombre, g.nivel, key); 
+                }
+                // Si ya hay caché, no hacemos nada. La actualización se hará al entrar al grupo.
+            });
+        }
+        
+        // --- MODIFICACIÓN DE LA FUNCIÓN loadAnnouncements PARA SER ROBUSTA ---
+        // Se mantiene la robustez con timestamp y chequeo de múltiples claves
+        async function loadAnnouncements() {
+            const banner = document.getElementById('announcement-banner');
+            
+            try {
+                // Añadimos un timestamp para evitar caché agresivo
+                const response = await fetch(`${API_URL}?action=getAnnouncements&t=${new Date().getTime()}`, { redirect: "follow" });
+                
+                if (!response.ok) throw new Error('Error de red al cargar anuncios');
+
+                const announcements = await response.json();
+                
+                // LÓGICA ROBUSTA: Buscar cualquier propiedad que contenga el mensaje
+                // Esto previene errores si la API cambia el nombre de la columna (ej. "texto", "body", "mensaje")
+                if (announcements && Array.isArray(announcements) && announcements.length > 0) {
+                    const firstAnuncio = announcements[0];
+                    // Lista de posibles claves para el mensaje
+                    const possibleKeys = ['mensaje', 'message', 'texto', 'contenido', 'body', 'aviso', 'text'];
+                    
+                    // Encontrar la primera clave que tenga valor
+                    const msgKey = possibleKeys.find(key => firstAnuncio[key]);
+                    
+                    if (msgKey) {
+                        announcementText.textContent = firstAnuncio[msgKey];
+                        banner.classList.remove('hidden'); 
+                    } else {
+                        // Si el objeto existe pero no tiene texto reconocible
+                        console.warn("Anuncio recibido pero sin propiedad de texto conocida:", firstAnuncio);
+                        banner.classList.add('hidden');
+                    }
+                } else {
+                    banner.classList.add('hidden'); 
+                }
+            } catch (e) {
+                console.warn("Error al cargar anuncios:", e);
+                banner.classList.add('hidden');
+            }
+        }
+
+        function logout() {
+            if (statusInterval) clearInterval(statusInterval);
+            if (iframeActivityChecker) clearInterval(iframeActivityChecker); // NUEVO: Limpiar el verificador de Iframe
+            if (loaderTimeout) clearTimeout(loaderTimeout); // Limpiar timeout de la animación de carga
+            sessionStorage.removeItem('pinceladas_session');
+            localStorage.removeItem(CACHE_KEY); // Limpiamos la caché persistente al cerrar sesión
+            location.reload();
+        }
+
+        // --- RENDERIZACIÓN DE GRADOS ---
+        function renderGrades() {
+            const pContainer = document.getElementById('grid-primaria');
+            const sContainer = document.getElementById('grid-secundaria');
+            if(!pContainer || !sContainer) return; 
+
+            const createCard = (g, colorClass, borderClass) => {
+                // Verificar si el usuario tiene permisos
+                const hasPermission = checkPermissions(g.nombre, g.nivel);
+                const gradeKey = `${g.nombre}-${g.nivel}`;
+                
+                const baseClasses = "grade-card cursor-pointer bg-white border rounded-xl p-6 flex justify-between items-center transition-all duration-300 group transform will-change-transform relative z-10";
+                let finalClasses = baseClasses;
+                let finalAction = `onclick="loadStudents('${g.nombre}', '${g.nivel}')"`;
+                
+                let gradeClasses = `text-xl font-bold transition-colors relative z-10`;
+                
+                const overlayColorClass = colorClass === 'red' ? 'text-montessori-red' : 'text-montessori-blue';
+
+                if (hasPermission) {
+                    finalClasses += ` ${borderClass} hover:shadow-lg hover:-translate-y-1`;
+                    gradeClasses += ` text-gray-800 group-hover:text-black`;
+                } else {
+                    finalClasses += ` border-gray-100 opacity-50 cursor-not-allowed hover:shadow-none`;
+                    gradeClasses += ` text-gray-600`;
+                    finalAction = `onclick="showAccessDeniedMessage()"`;
+                }
+                
+                // Overlay de icono/número como marca de agua - Se usa el color base
+                const iconOverlay = `
+                    <div class="grade-icon-overlay ${overlayColorClass}" 
+                         style="transition: opacity 0.3s ease-out, color 0.3s ease-out;">
+                        ${g.icon}
+                    </div>
+                `;
+
+                return `
+                    <div ${finalAction} class="${finalClasses}">
+                         <div>
+                            <p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-1 relative z-10">${g.nivel}</p>
+                            <h3 class="${gradeClasses}">${g.nombre}</h3>
+                         </div>
+                         ${iconOverlay}
+                    </div>
+                `;
+            };
+            
+            pContainer.innerHTML = gradosPrimaria.map(g => createCard(g, 'red', 'border-montessori-red')).join('');
+            sContainer.innerHTML = gradosSecundaria.map(g => createCard(g, 'blue', 'border-montessori-blue')).join('');
+        }
+        
+        // Función de utilidad para cerrar el modal de Acceso Denegado
+        function closeAccessDenied() {
+            accessDeniedModal.classList.remove('opacity-100');
+            accessDeniedModal.classList.add('opacity-0');
+            setTimeout(() => {
+                accessDeniedModal.classList.add('hidden');
+            }, 300);
+        }
+        
+        // Función de utilidad para mostrar el modal de Acceso Denegado
+        function showAccessDeniedMessage() {
+            initDynamicTexts();
+
+            accessDeniedModal.classList.remove('hidden');
+            setTimeout(() => {
+                accessDeniedModal.classList.remove('opacity-0');
+                accessDeniedModal.classList.add('opacity-100');
+            }, 10);
+        }
+
+        function showHome() {
+            document.getElementById('view-home').classList.remove('hidden');
+            document.getElementById('view-students').classList.add('hidden');
+            
+            // Reactivar animaciones de fondo al volver al home
+            document.body.classList.remove('high-performance-mode');
+            searchInput.value = '';
+            
+            // Ocultar el dropdown al volver al home
+            toggleSwitcher(true); 
+        }
+
+        // --- FETCH DE DATOS DE ESTUDIANTES (LÓGICA STALE-WHILE-REVALIDATE) ---
+        
+        // --- NUEVAS FUNCIONES PARA EL SELECTOR CUSTOM (Dropdown) ---
+
+        function toggleSwitcher(forceClose) {
+            if (!switcherDropdown) return;
+
+            if (forceClose || isSwitcherOpen) {
+                switcherDropdown.classList.replace('opacity-100', 'opacity-0');
+                switcherIcon.classList.replace('rotate-180', 'rotate-0');
+                setTimeout(() => { switcherDropdown.classList.add('hidden'); }, 150);
+                isSwitcherOpen = false;
+            } else {
+                renderGradeSelector(`${currentGradeName}-${currentGradeLevel}`); // Asegura que el contenido esté fresco
+                switcherDropdown.classList.remove('hidden');
+                setTimeout(() => { 
+                    switcherDropdown.classList.replace('opacity-0', 'opacity-100');
+                    switcherIcon.classList.replace('rotate-0', 'rotate-180');
+                }, 10);
+                isSwitcherOpen = true;
+            }
+        }
+
+        function handleGradeSwitch(grade, level) {
+            toggleSwitcher(true); // Close the dropdown
+            loadStudents(grade, level);
+        }
+        
+        // --- MEJORA: Función para Renderizar Selector Rápido de Grado CUSTOM ---
+        function renderGradeSelector(currentGradeKey) {
+            const dropdown = document.getElementById('switcher-dropdown');
+            const currentGrade = allGradesMaster.find(g => `${g.nombre}-${g.nivel}` === currentGradeKey);
+
+            if (currentGrade) {
+                currentGradeLabel.textContent = `${currentGrade.nombre} (${currentGrade.nivel})`;
+                
+                // Establece el color de borde del botón según el nivel (Primaria/Secundaria)
+                const color = currentGrade.nivel === 'Primaria' ? '#C00000' : '#002060';
+                switcherButton.style.borderColor = color;
+                switcherButton.style.borderWidth = '2px';
+            } else {
+                 currentGradeLabel.textContent = `Seleccionar Grado`;
+                 switcherButton.style.borderColor = '#E5E7EB';
+                 switcherButton.style.borderWidth = '1px';
+            }
+
+            dropdown.innerHTML = allAccessibleGrades.map(g => {
+                if (!checkPermissions(g.nombre, g.nivel)) return '';
+
+                const gradeKey = `${g.nombre}-${g.nivel}`;
+                const isActive = gradeKey === currentGradeKey;
+                
+                const itemColor = g.nivel === 'Primaria' ? 'hover:bg-red-50 text-montessori-red' : 'hover:bg-blue-50 text-montessori-blue';
+                const selectedBgColor = g.nivel === 'Primaria' ? 'bg-red-100/50' : 'bg-blue-100/50';
+                const accentColor = g.nivel === 'Primaria' ? '#C00000' : '#002060';
+
+                return `
+                    <button onclick="handleGradeSwitch('${g.nombre}', '${g.nivel}')" 
+                            class="text-left text-sm font-medium transition-colors ${itemColor} ${isActive ? 'bg-gray-50' : ''} mb-1 w-full"
+                            style="${isActive ? `border-left: 4px solid ${accentColor}; font-weight: 600; color: #1F2937; background-color: ${selectedBgColor};` : ''}"
+                            ${isActive ? 'disabled' : ''}>
+                        <span>${g.nombre} (${g.nivel})</span>
+                        ${isActive ? '<svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        async function loadStudents(grade, level) {
+            if (!checkPermissions(grade, level)) {
+                showAccessDeniedMessage();
+                return; 
+            }
+
+            currentGradeName = grade;
+            currentGradeLevel = level;
+            const gradeKey = `${grade}-${level}`;
+
+            // Actualizar la apariencia del selector de grado activo
+            renderGradeSelector(gradeKey);
+
+            // OPTIMIZACIÓN: MATAR ANIMACIONES DE FONDO
+            document.body.classList.add('high-performance-mode');
+
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-students').classList.remove('hidden');
+            
+            // MEJORA UX: Actualizar Breadcrumbs
+            breadcrumbLevel.textContent = level;
+            breadcrumbGrade.textContent = grade;
+            
+            const gradeColor = level === 'Primaria' ? 'text-montessori-red' : 'text-montessori-blue';
+            breadcrumbLevel.className = `font-medium ${gradeColor}`;
+            breadcrumbGrade.className = `font-bold ${gradeColor}`;
+
+            // Limpiar lista y buscador
+            studentsContainer.innerHTML = '';
+            searchInput.value = '';
+            
+            // --- FASE 1: CARGA INMEDIATA DESDE CACHÉ (INSTANTÁNEA) ---
+            currentGradeData = loadFromCache(gradeKey);
+            
+            if (currentGradeData.length === 0) {
+                console.log(`[Load] Caché vacío. Mostrando esqueleto y pidiendo datos de red.`);
+                renderSkeletonRows(currentGradeLevel); // Mostrar esqueleto
+                // loadingIndicator.classList.remove('hidden'); // ELIMINADO: No mostrar indicador visible
+            } else {
+                console.log(`[Load] ${currentGradeData.length} estudiantes cargados instantáneamente desde caché.`);
+                renderStudentList(currentGradeData, currentGradeLevel); // Renderizar lista vieja (Stale)
+                // loadingIndicator.classList.remove('hidden'); // ELIMINADO: No mostrar indicador visible
+            }
+
+            // --- FASE 2: VERIFICACIÓN SILENCIOSA EN SEGUNDO PLANO (REVALIDATE) ---
+            const newData = await fetchFromNetwork(grade, level, gradeKey);
+            
+            // loadingIndicator.classList.add('hidden'); // ELIMINADO: No mostrar indicador visible
+
+            // --- FASE 3: COMPARACIÓN Y ACTUALIZACIÓN ---
+            if (newData.length > 0) {
+                // Si la data de red es diferente a la que teníamos (o si el cache estaba vacío)
+                // Nota: La comparación se omite por simplicidad y se asume que si hay datos nuevos, hay que renderizar.
+                
+                // Si la lista de caché estaba vacía, ahora tenemos datos.
+                // Si ya había datos, la actualización es silenciosa, a menos que el filtro esté activo.
+                if (currentGradeData.length === 0 || searchInput.value.trim() !== '') {
+                    currentGradeData = newData;
+                    filterStudentList(); // Aplicar filtro/renderizar con los datos nuevos
+                } else if (JSON.stringify(currentGradeData) !== JSON.stringify(newData)) {
+                     // Si los datos son diferentes y no hay filtro, refrescar la lista.
+                     currentGradeData = newData;
+                     renderStudentList(currentGradeData, currentGradeLevel);
+                     console.log("[Load] Lista actualizada silenciosamente con datos de red.");
+                } else {
+                     console.log("[Load] Datos de caché y red son iguales. No se requiere refresco.");
+                }
+            } else if (currentGradeData.length === 0) {
+                 // Si ni caché ni red devolvieron datos, mostrar mensaje de error.
+                 studentsContainer.innerHTML = `<div class="text-center py-10 text-gray-600">No hay estudiantes en este grado o error de conexión.</div>`;
+            }
+        }
+
+        // --- MEJORA: Función de Filtro en Tiempo Real ---
+        function filterStudentList() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const listContainer = document.getElementById('students-list-container');
+            listContainer.innerHTML = ''; // Limpiar antes de renderizar
+            
+            if (currentGradeData.length === 0) {
+                 listContainer.innerHTML = `<div class="text-center py-10 text-gray-600">No hay estudiantes en este grado o error al cargar.</div>`;
+                 return;
+            }
+
+            const filteredData = currentGradeData.filter(student => 
+                student.nombre.toLowerCase().includes(searchTerm)
+            );
+            
+            if (filteredData.length > 0) {
+                renderStudentList(filteredData, currentGradeLevel, listContainer, true);
+            } else {
+                 listContainer.innerHTML = `<div class="text-center py-10 text-gray-600">No se encontraron resultados para "${searchTerm}".</div>`;
+            }
+        }
+
+
+        // --- MEJORA: Función para renderizar filas de esqueleto (Skeleton Loader) ---
+        function renderSkeletonRows(level) {
+            const listContainer = document.getElementById('students-list-container');
+            const colorClass = level === 'Primaria' ? 'bg-red-100/50' : 'bg-blue-100/50';
+            let skeletonHTML = '';
+            
+            // Generar 10 filas de esqueleto
+            for(let i = 0; i < 10; i++) {
+                skeletonHTML += `
+                    <div class="skeleton-row space-y-2 bg-white border border-gray-100 shadow-sm cursor-wait group animate-pulse">
+                        <div class="flex items-center gap-4 min-w-0 w-full">
+                            <div class="font-bold w-6 h-4 bg-gray-200 rounded flex-shrink-0"></div>
+                            <div class="h-4 ${colorClass} rounded-full animate-shimmer" style="width: ${80 - (i * 3)}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            listContainer.innerHTML = skeletonHTML;
+        }
+
+        // --- MEJORA: Uso de Fila Completa como Botón (Solicitado) ---
+        function renderStudentList(data, level, container = studentsContainer, isFiltered = false) {
+            if (!data || data.length === 0) {
+                if (!isFiltered) {
+                    container.innerHTML = `<div class="text-center py-10 text-gray-600">Sin registros.</div>`;
+                }
+                return;
+            }
+
+            const hoverClass = level === 'Primaria' ? 'hover:border-montessori-red' : 'hover:border-montessori-blue';
+            
+            container.innerHTML = data.map((student, index) => {
+                // Si la lista está filtrada, encontramos el índice original.
+                const displayIndex = currentGradeData.findIndex(s => s.nombre === student.nombre) + 1;
+                
+                // La fila completa es el botón y llama a openBulletinModal
+                return `
+                    <div class="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-lg ${hoverClass} hover:shadow-lg transition-colors will-change-transform cursor-pointer group" 
+                         onclick="openBulletinModal('${student.link}')" 
+                         data-link="${student.link}">
+                        <div class="flex items-center gap-4 min-w-0">
+                            <span class="font-bold text-gray-600 w-6 text-right flex-shrink-0">${displayIndex}.</span>
+                            <span class="font-semibold text-gray-700 truncate">${student.nombre}</span>
+                        </div>
+                        <!-- Indicador visual de que es clickable (Flecha) -->
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-montessori-blue transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- FUNCIONES DE MODAL (CERO LAG + MODO EDICIÓN) ---
+        
+        function openBulletinModal(url) {
+            if (!url) return;
+            
+            document.body.classList.add('high-performance-mode');
+            
+            iframeLoader.classList.remove('hidden');
+
+            // 2. Iniciar la animación y actualización de estado secuencial
+            startBulletinLoaderAnimation(url);
+
+            bulletinModal.classList.remove('hidden', 'opacity-0');
+        }
+
+        function startBulletinLoaderAnimation(url) {
+            if (loaderTimeout) clearTimeout(loaderTimeout); // Limpiar ejecuciones previas
+
+            // Reset status and icon (Paso 1: Preparación)
+            loaderStatusText.textContent = 'Preparando visor...';
+            loaderIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>`; // Ícono: Prep/Código
+            loaderIcon.classList.remove('animate-spin');
+
+            loaderTimeout = setTimeout(() => {
+                // Paso 2: Conectando (500ms)
+                loaderStatusText.textContent = 'Conectando a Google Drive...';
+                loaderIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101M16 16l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>`; // Ícono: Conexión
+                bulletinIframe.src = url; // Iniciar la carga del iframe aquí
+                // loaderIcon.classList.add('animate-spin'); // CLASE DE SPIN ELIMINADA SEGÚN SOLICITUD
+
+                loaderTimeout = setTimeout(() => {
+                    // Paso 3: Descargando/Renderizando (2500ms + 2000ms = 3000ms total)
+                    loaderStatusText.textContent = 'Descargando y renderizando Boletín...';
+                    loaderIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>`; // Ícono: Descarga/Archivo
+                    
+                    // Mensaje de respaldo si la carga es muy lenta
+                    loaderTimeout = setTimeout(() => {
+                        loaderStatusText.textContent = 'El documento es grande. Espere un momento...';
+                    }, 5000); 
+
+                }, 2000); 
+
+            }, 500); // Iniciar preparación tras 500ms
+        }
+
+        function closeBulletinModal() {
+            if (loaderTimeout) clearTimeout(loaderTimeout); // Limpiar timeout de la animación
+            bulletinModal.classList.add('opacity-0');
+            
+            // Si no estamos en la vista de estudiantes, reactivar animaciones
+            const isStudentView = !document.getElementById('view-students').classList.contains('hidden');
+            if (!isStudentView) {
+                 document.body.classList.remove('high-performance-mode');
+            }
+            
+            setTimeout(() => {
+                bulletinModal.classList.add('hidden');
+                bulletinIframe.removeAttribute('src'); 
+                // Restaurar el ícono de carga por defecto al cerrar
+                loaderIcon.classList.remove('animate-spin');
+                loaderIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>`;
+            }, 50);
+        }
+
+        function prefetchBulletin(url) {
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.href = url;
+            document.head.appendChild(link);
+        }
+
+        // --- NUEVAS FUNCIONES DE MODAL TUTORIAL ---
+        function openTutorialModal() {
+            tutorialModal.classList.remove('hidden');
+            document.body.classList.add('high-performance-mode');
+
+            requestAnimationFrame(() => {
+                tutorialModal.classList.remove('opacity-0');
+                document.getElementById('tutorial-modal-content').classList.remove('scale-95');
+                document.getElementById('tutorial-modal-content').classList.add('scale-100');
+            });
+        }
+
+        function closeTutorialModal() {
+            tutorialModal.classList.add('opacity-0');
+            document.getElementById('tutorial-modal-content').classList.remove('scale-100');
+            document.getElementById('tutorial-modal-content').classList.add('scale-95');
+            
+            // Reactivar animaciones si no estamos en otra vista que las pause
+            const isStudentView = !document.getElementById('view-students').classList.contains('hidden');
+            if (!isStudentView) {
+                 document.body.classList.remove('high-performance-mode');
+            }
+            
+            setTimeout(() => {
+                tutorialModal.classList.add('hidden');
+            }, 200);
+        }
+        
+        // --- ESTADO DE CONEXIÓN (Sin prefijo BD:) ---
+        async function checkSystemStatus(username = null) {
+            const dot = document.getElementById('status-dot');
+            const label = document.getElementById('status-text'); 
+            
+            if (!dot || !label) return; 
+            
+            let status = 'Offline';
+            let message = '';
+            let url = `${API_URL}?action=checkStatus&t=${new Date().getTime()}`;
+            if (username) url += `&username=${encodeURIComponent(username)}`;
+
+            try {
+                 const response = await fetch(url, { redirect: 'follow', cache: 'no-store' }); 
+                 if (response.ok) {
+                     const data = await response.json();
+                     status = data.status;
+                     message = data.message;
+                     
+                     // 1. Detección de CIERRE DE PROCESAMIENTO
+                     if (status === 'closed') {
+                         if (!closureScreen.classList.contains('hidden')) return data; // Ya estamos en la pantalla de cierre, no hacer nada más
+                         
+                         // Si estaba navegando, lo sacamos
+                         handleClosure(message);
+                         return data;
+                     }
+                 }
+            } catch (error) { 
+                console.warn("Error al verificar estado de la BD:", error);
+                status = 'Offline';
+            } 
+
+            // Si el sistema estaba cerrado y se abre (por ser admin)
+            if (status === 'online_closure') {
+                dot.classList.add('bg-orange-500', 'animate-pulse');
+                label.textContent = "CIERRE ACTIVO"; 
+                label.classList.add('text-orange-600'); 
+            }
+            // Si el sistema está totalmente en línea
+            else if (status === 'online') {
+                dot.classList.remove('bg-gray-400', 'bg-red-500', 'bg-orange-500');
+                dot.classList.add('bg-green-500', 'animate-pulse');
+                label.textContent = "EN LÍNEA"; 
+                label.classList.remove('text-montessori-blue', 'text-montessori-red', 'text-orange-600');
+                label.classList.add('text-montessori-blue'); 
+            } 
+            // Si hay un error de conexión (offline)
+            else if (status === 'Offline' || status === 'error') {
+                dot.classList.remove('bg-green-500', 'bg-orange-500');
+                dot.classList.add('bg-red-500', 'animate-pulse'); 
+                label.textContent = "OFFLINE"; 
+                label.classList.remove('text-montessori-blue', 'text-orange-600');
+                label.classList.add('text-montessori-red'); 
+            }
+            
+            return { status, message };
+        }
+
+        // NUEVO: Función para verificar la actividad en el iframe y resetear el timer.
+        function startIframeActivityChecker() {
+            if (iframeActivityChecker) clearInterval(iframeActivityChecker);
+            
+            // Verifica cada 5 segundos si el modal del boletín está abierto, y si lo está,
+            // asume que hay actividad y resetea el temporizador principal.
+            iframeActivityChecker = setInterval(() => {
+                // bulletinModal es el elemento definido globalmente
+                if (bulletinModal && !bulletinModal.classList.contains('hidden')) {
+                    // console.log("[Activity Check] Bulletin open. Resetting inactivity timer.");
+                    resetInactivityTimer();
+                }
+            }, 5000); // Se ejecuta cada 5 segundos (5000ms)
+        }
+
+        function skipIntro(name, username) {
+            loginScreen.classList.add('hidden');
+            appContent.classList.remove('hidden');
+            appContent.classList.add('flex', 'fade-in');
+            
+            // Aseguramos que las animaciones de fondo estén activas al iniciar en el home
+            document.body.classList.remove('high-performance-mode');
+            
+            initApp(name, username);
+            removeInitialLoader();
+        }
+
+        function unlockInterface(name) {
+            loginCard.classList.add('fade-out');
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            quoteText.textContent = randomQuote;
+
+            setTimeout(() => {
+                loginCard.classList.add('hidden'); 
+                quoteContainer.classList.remove('hidden');
+                quoteContainer.classList.add('fade-in');
+            }, 400);
+
+            setTimeout(() => {
+                loginScreen.classList.add('fade-out');
+                setTimeout(() => {
+                    loginScreen.classList.add('hidden');
+                    quoteContainer.classList.add('hidden'); 
+                    appContent.classList.remove('hidden');
+                    appContent.classList.add('flex', 'fade-in');
+                    
+                    // Aseguramos que las animaciones de fondo estén activas al iniciar en el home
+                    document.body.classList.remove('high-performance-mode');
+
+                    const session = JSON.parse(sessionStorage.getItem('pinceladas_session'));
+                    initApp(name, session.username);
+                }, 500); 
+            }, 4000); 
+        }
+
+        function initApp(name, username) {
+            userNameDisplay.textContent = name || 'Usuario';
+            
+            // Inicializar datos de permisos y grados al inicio de la app
+            const sessionData = sessionStorage.getItem('pinceladas_session');
+            if (sessionData) {
+                const session = JSON.parse(sessionData);
+                const perms = (session.permissions || '').toUpperCase();
+                userPermissions = perms.split(',').map(p => p.trim());
+                allAccessibleGrades = getAccessibleGrades(perms); // Pasamos el string de permisos
+            }
+            
+            renderGrades();
+            startStatusCycle(username);
+            loadAnnouncements();
+            resetInactivityTimer(); 
+            startIframeActivityChecker(); // NUEVO: Iniciar el verificador de actividad en Iframe
+            setTimeout(matchWidths, 100); 
+        }
+        
+        function startStatusCycle(username) {
+            checkSystemStatus(username);
+            if (statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(() => {
+                if (!document.hidden) {
+                    checkSystemStatus(username);
+                }
+            }, 60000); 
+        }
+
+        async function checkSessionValidity() {
+            // Lógica para verificar sesión...
+            const sessionData = sessionStorage.getItem('pinceladas_session');
+            if (sessionData) {
+                const session = JSON.parse(sessionData);
+                const sessionTimeout = session.timeout ? (session.timeout * 60 * 1000) : currentUserTimeoutMs;
+                
+                if ((new Date().getTime() - session.loginTime) > sessionTimeout) {
+                    sessionStorage.removeItem('pinceladas_session');
+                    localStorage.removeItem(CACHE_KEY); // Limpiamos la caché persistente
+                    removeInitialLoader();
+                } else {
+                    currentUserTimeoutMs = sessionTimeout;
+                    
+                    // Verificar estado de bloqueo antes de entrar
+                    const statusCheck = await checkSystemStatus(session.username);
+                    if (statusCheck.status === 'closed') {
+                         handleClosure(statusCheck.message);
+                         return; 
+                    }
+                    
+                    // Si no hay bloqueo y la sesión es válida, entramos
+                    const perms = (session.permissions || '').toUpperCase();
+                    userPermissions = perms.split(',').map(p => p.trim());
+                    allAccessibleGrades = getAccessibleGrades(perms);
+
+                    skipIntro(session.name, session.username);
+                    prefetchGradesData(); // Lanzamos la precarga al saltar el login
+                    resetInactivityTimer();
+                }
+            } else {
+                removeInitialLoader();
+            }
+        }
+
+        // --- FUNCIONES DE CALENDARIO (REVISADAS) ---
+
+        // Nueva función explícita para abrir el modal
+        function openCalendarModal() {
+            renderCalendar();
+            calendarModal.classList.remove('hidden');
+            document.body.classList.add('high-performance-mode'); // Pausar fondo al abrir
+            requestAnimationFrame(() => {
+                calendarModal.classList.remove('opacity-0');
+                calendarModalContent.classList.remove('scale-95');
+                calendarModalContent.classList.add('scale-100');
+            });
+        }
+
+        // Nueva función explícita para cerrar el modal
+        function closeCalendarModal() {
+            calendarModal.classList.add('opacity-0');
+            calendarModalContent.classList.remove('scale-100');
+            calendarModalContent.classList.add('scale-95');
+            
+            // Reactivar animaciones si no estamos en otra vista que las pause
+            const isStudentView = !document.getElementById('view-students').classList.contains('hidden');
+            if (!isStudentView) {
+                 document.body.classList.remove('high-performance-mode');
+            }
+            
+            setTimeout(() => {
+                calendarModal.classList.add('hidden');
+            }, 200);
+        }
+
+        // La función original "toggleCalendarModal" se mantiene para su uso dentro del click de fondo, pero ahora llama a `closeCalendarModal`
+        function toggleCalendarModal(forceClose = false) {
+             // Si está visible, lo cerramos.
+             if (!calendarModal.classList.contains('hidden')) {
+                closeCalendarModal();
+             } else if (!forceClose) {
+                // Si está oculto, lo abrimos (solo si no estamos forzando el cierre)
+                openCalendarModal();
+             }
+        }
+        
+        function renderCalendar() { 
+            calendarGrid.innerHTML = '';
+            const monthName = monthNames[currentCalMonth];
+            calMonthDisplay.textContent = monthName; 
+            calYearDisplay.textContent = currentCalYear; 
+
+            // LÓGICA DE TAMAÑO DE FUENTE INTELIGENTE
+            if(monthName.length > 8) { // Meses largos (Septiembre, Noviembre, Diciembre)
+                calMonthDisplay.classList.remove('text-2xl');
+                calMonthDisplay.classList.add('text-lg');
+            } else {
+                calMonthDisplay.classList.remove('text-lg');
+                calMonthDisplay.classList.add('text-2xl'); // Fuente grande para meses cortos
+            }
+
+            const firstDay = new Date(currentCalYear, currentCalMonth, 1).getDay();
+            const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+            const totalCells = 42;
+            let dayCount = 1;
+            
+            for (let i = 0; i < totalCells; i++) {
+                const dayEl = document.createElement('div');
+                
+                if (i < firstDay || dayCount > daysInMonth) {
+                    dayEl.className = 'calendar-day empty'; 
+                    dayEl.innerHTML = '';
+                } else {
+                    dayEl.className = 'calendar-day group'; 
+                    const date = new Date(currentCalYear, currentCalMonth, dayCount);
+                    const dateString = `${currentCalMonth + 1}/${dayCount}/${currentCalYear}`;
+                    
+                    dayEl.innerHTML = `<span class="z-10 relative">${dayCount}</span>`;
+
+                    const isToday = new Date().toDateString() === date.toDateString();
+                    const eventText = calendarEvents[dateString];
+                    const isHoliday = nonWorkingDays.has(dateString);
+                    const isEdu = educationalHolidays.has(dateString);
+                    const isHoly = holyWeekDays.has(dateString);
+
+                    if (isToday) {
+                        dayEl.classList.add('current-day');
+                    } else if (isHoly) {
+                        dayEl.classList.add('holy-week');
+                    } else if (isHoliday) {
+                        dayEl.classList.add('holiday');
+                    } else if (isEdu) {
+                        dayEl.classList.add('educational');
+                    } else {
+                        dayEl.classList.add('text-gray-600');
+                    }
+
+                    if (eventText || isHoliday || isEdu || isHoly) {
+                        const dot = document.createElement('div');
+                        dot.className = 'dot-indicator';
+                        if (!dayEl.classList.contains('holiday') && !dayEl.classList.contains('educational') && !dayEl.classList.contains('holy-week') && !dayEl.classList.contains('current-day')) {
+                            dot.style.backgroundColor = '#002060';
+                        }
+                        dayEl.appendChild(dot);
+                        dayEl.addEventListener('click', () => openEventDetailModal(date, eventText, isHoliday, isEdu, isHoly));
+                    }
+                    
+                    dayCount++;
+                }
+                calendarGrid.appendChild(dayEl);
+            }
+        }
+        
+        function openEventDetailModal(date, text, isHoliday, isEdu, isHoly) {
+            const dateString = `${dayNames[date.getDay()]}, ${date.getDate()} de ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+            eventDetailDate.textContent = dateString;
+            eventDetailBody.innerHTML = '';
+
+            let contentHTML = '';
+            if (isHoly) contentHTML += `<span class="inline-block bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-1 rounded mr-1 mb-2">Semana Santa</span>`;
+            if (isHoliday) contentHTML += `<span class="inline-block bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded mr-1 mb-2">Feriado</span>`;
+            if (isEdu) contentHTML += `<span class="inline-block bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded mr-1 mb-2">Escolar</span>`;
+
+            if (text) {
+                // Se mantiene el reemplazo de paréntesis por negrita para el texto del calendario
+                let formattedText = text
+                    .replace(/\(([^)]+)\)/g, '<span class="text-montessori-blue font-bold">($1)</span>');
+                contentHTML += `<p class="text-sm text-gray-700 leading-relaxed">${formattedText}</p>`;
+            } else if(isHoliday || isEdu || isHoly) {
+                 contentHTML += `<p class="text-sm text-gray-500 italic">Sin descripción detallada.</p>`;
+            }
+
+            eventDetailBody.innerHTML = contentHTML;
+            eventDetailModal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                eventDetailModal.classList.remove('opacity-0');
+                document.getElementById('event-detail-content').classList.remove('scale-95');
+                document.getElementById('event-detail-content').classList.add('scale-100');
+            });
+        }
+        
+        function closeEventDetailModal() {
+            eventDetailModal.classList.add('opacity-0');
+            document.getElementById('event-detail-content').classList.remove('scale-100');
+            document.getElementById('event-detail-content').classList.add('scale-95');
+            setTimeout(() => {
+                eventDetailModal.classList.add('hidden');
+            }, 200);
+        }
+        
+        // --- INICIALIZACIÓN ---
+
+        const symbols = ['100', 'A+', 'A', '10', '✓', '95', 'B+', '★', '90', 'A', '100'];
+        function initAllParticles() {
+            const containers = document.querySelectorAll('.particles-container');
+            containers.forEach(container => createParticlesForContainer(container));
+        }
+
+        function createParticlesForContainer(container) {
+            const particleCount = 18; 
+            for (let i = 0; i < particleCount; i++) {
+                spawnParticle(container);
+            }
+        }
+
+        function spawnParticle(container) {
+            const span = document.createElement('span');
+            span.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+            span.classList.add('grade-particle');
+            if (Math.random() > 0.5) span.classList.add('blue');
+            else span.classList.add('red');
+
+            const rotation = Math.floor(Math.random() * 40 - 20);
+            span.style.setProperty('--rotation', `${rotation}deg`);
+
+            span.classList.add('background');
+            const left = Math.random() * 100;
+            const duration = 15 + Math.random() * 20; 
+            const delay = Math.random() * -30; 
+            const size = 0.8 + Math.random() * 1.2; 
+
+            span.style.left = `${left}%`;
+            span.style.animationDuration = `${duration}s`;
+            span.style.animationDelay = `${delay}s`;
+            span.style.fontSize = `${size}rem`;
+
+            container.appendChild(span);
+        }
+
+        // Calendar Listeners 
+        if (calPrevBtn) calPrevBtn.addEventListener('click', () => { currentCalMonth--; if (currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; } renderCalendar(); });
+        if (calNextBtn) calNextBtn.addEventListener('click', () => { currentCalMonth++; if (currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; } renderCalendar(); });
+
+        window.onload = () => {
+            // PROHIBICIÓN DE HERRAMIENTAS DE DESARROLLO (SOLICITADO)
+            // Deshabilita click derecho (context menu)
+            document.addEventListener('contextmenu', e => e.preventDefault()); 
+
+            // Deshabilita la selección de texto
+            document.body.style.userSelect = 'none';
+            
+            // Deshabilita teclas de desarrollador (F12, Ctrl/Shift/Cmd + I/J)
+            document.addEventListener('keydown', e => {
+                if (e.key === 'F12' || 
+                    (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) || 
+                    (e.metaKey && e.altKey && e.key === 'I') || 
+                    (e.ctrlKey && e.key === 'u')) { // Ctrl+U para ver fuente
+                    e.preventDefault();
+                }
+            });
+
+
+            document.body.onmousemove = resetInactivityTimer;
+            document.body.onkeydown = resetInactivityTimer;
+            document.body.onclick = resetInactivityTimer;
+            window.addEventListener('resize', matchWidths);
+
+            // Listener para cerrar el modal de tutorial al presionar ESC
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !tutorialModal.classList.contains('hidden')) {
+                    closeTutorialModal();
+                }
             });
             
-            startButton.addEventListener('click', () => startGame(false));
-            continueButton.addEventListener('click', () => startGame(true));
-            gradesButton.addEventListener('click', showGrades);
-            backToStartButton.addEventListener('click', () => setupMainMenu());
-            homeButton.addEventListener('click', () => {
-                clearInterval(timer);
-                clearInterval(definitionInterval); 
-                saveCurrentProgress();
-                setupMainMenu();
-            });
-            deck.addEventListener('click', drawCard);
-            optionButtons.forEach(button => button.addEventListener('click', () => checkAnswer(button.dataset.type)));
-            feedbackContinueButton.addEventListener('click', continueGame);
+            // --- MEJORA: Listener para búsqueda en tiempo real ---
+            if (searchInput) {
+                 searchInput.addEventListener('input', filterStudentList);
+            }
 
-            init();
-        });
+            matchWidths();
+            
+            checkSessionValidity(); // Usa la nueva lógica de sesión
+            initDynamicTexts();
+            initAllParticles(); 
+            
+            // Modificado: El onload ahora solo oculta el loader y limpia el timeout de la animación
+            bulletinIframe.onload = () => { 
+                if (loaderTimeout) clearTimeout(loaderTimeout); // Detener la animación secuencial
+                iframeLoader.classList.add('hidden'); // Ocultar el loader
+            };
+
+            closeBulletinBtn.addEventListener('click', closeBulletinModal);
+            
+            if(studentsContainer) {
+                // Ya no necesitamos este listener de click porque el onclick está en la fila HTML,
+                // pero lo dejo para el prefetch en mouseover
+                studentsContainer.addEventListener('mouseover', function(e) {
+                    const row = e.target.closest('div[data-link]');
+                    if (row && row.dataset.link && !row.dataset.prefetched) {
+                        prefetchBulletin(row.dataset.link);
+                        row.dataset.prefetched = "true";
+                    }
+                });
+            }
+            
+            // Global listener to close the custom dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                const switcherContainer = document.getElementById('grade-quick-switcher');
+                const dropdown = document.getElementById('switcher-dropdown');
+                // Si el clic no fue dentro del contenedor del switcher Y el dropdown está abierto
+                if (switcherContainer && dropdown && !switcherContainer.contains(e.target) && isSwitcherOpen) {
+                    toggleSwitcher(true);
+                }
+            });
+        };
     </script>
 </body>
 </html>
-
