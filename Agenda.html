@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Agenda Escolar - Pinceladas Montessori</title>
+    
+    <!-- CONEXIONES -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- FAVICON: Calendario Azul Montessori -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23002060' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2' ry='2'></rect><line x1='16' y1='2' x2='16' y2='6'></line><line x1='8' y1='2' x2='8' y2='6'></line><line x1='3' y1='10' x2='21' y2='10'></line><rect x='7' y='14' width='2' height='2' fill='%23002060' stroke='none'></rect><rect x='11' y='14' width='2' height='2' fill='%23002060' stroke='none'></rect><rect x='15' y='14' width='2' height='2' fill='%23002060' stroke='none'></rect></svg>">
+
+    <!-- Fuentes -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Chewy&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        montserrat: ['Montserrat', 'sans-serif'],
+                        chewy: ['Chewy', 'cursive']
+                    },
+                    colors: {
+                        montessori: {
+                            blue: '#002060',
+                            red: '#C00000',
+                            yellow: '#FFD966',
+                            grey: '#757575',
+                            white: '#FFFFFF',
+                        }
+                    },
+                    boxShadow: {
+                        'clean': '0 4px 20px rgba(0,0,0,0.04)',
+                        'hover': '0 10px 25px rgba(0,0,0,0.06)',
+                        'dropdown': '0 10px 40px -5px rgba(0, 0, 0, 0.15)',
+                        'modal': '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+                        'footer': '0 -4px 20px rgba(0,0,0,0.05)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* PROTECCIÓN Y BASE */
+        body { 
+            background-color: #ffffff; 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            -webkit-font-smoothing: antialiased;
+            user-select: none; /* Anti-copiado */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+        *::-webkit-scrollbar { display: none; }
+        
+        /* TIPOGRAFÍA */
+        .text-colegio { color: #002060; font-family: 'Montserrat', sans-serif; font-weight: 700; letter-spacing: 1px; line-height: 1; }
+        .text-pinceladas { font-family: 'Chewy', cursive; color: #C00000; line-height: 1; }
+        .text-montessori-sub { background-color: #002060; color: #ffffff; padding: 0.1em 0.3em; border-radius: 50px; font-family: 'Montserrat', sans-serif; font-weight: 700; display: flex; justify-content: center; align-items: center; letter-spacing: 0.1em; width: auto; }
+        .logo-sm .text-colegio { font-size: 0.55rem; }
+        .logo-sm .text-pinceladas { font-size: 1.3rem; }
+        .logo-sm .text-montessori-sub { font-size: 0.55rem; padding: 1px 4px; }
+        
+        /* ANIMACIONES */
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* TARJETAS */
+        .month-card { transition: transform 0.3s, box-shadow 0.3s; cursor: pointer; }
+        .month-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,32,96,0.08); }
+        .month-card.empty { opacity: 0.6; background-color: #f8fafc; border-style: dashed; }
+        .month-card.empty:hover { opacity: 1; background-color: #fff; border-style: solid; }
+        
+        /* Tarjeta Especial (Reflexión) Actualizada con transición de color */
+        .month-card.special { 
+            cursor: default; 
+            color: white;
+            transition: background-color 1s ease, transform 0.3s;
+        }
+        .month-card.special.theme-blue {
+            background-color: #002060; /* Azul Montessori */
+        }
+        .month-card.special.theme-red {
+            background-color: #C00000; /* Rojo Montessori */
+        }
+        .month-card.special:hover { transform: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        
+        /* FILAS DE EVENTOS */
+        .event-row { transition: background-color 0.2s; }
+        .event-row:hover { background-color: #f8fafc; }
+        
+        /* TOAST */
+        #toast-container { position: fixed; bottom: 80px; right: 24px; z-index: 200; pointer-events: none; }
+        .toast { background: rgba(255, 255, 255, 0.95); color: #1e293b; padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; opacity: 0; transform: translateY(20px); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); backdrop-filter: blur(8px); box-shadow: 0 10px 30px -5px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 10px; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast::before { content: ''; width: 6px; height: 6px; background: #10b981; border-radius: 50%; }
+
+        /* HEADER & SELECTORES */
+        header { transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); position: relative; z-index: 50; }
+        body.mode-detail header { position: fixed; top: 0; width: 100%; transform: translateY(-92%); box-shadow: none; border-bottom-color: transparent; }
+        body.mode-detail header:hover { transform: translateY(0%); box-shadow: 0 4px 20px rgba(0,0,0,0.05); background-color: rgba(255,255,255,0.98); }
+        body.mode-detail main { padding-top: 64px; }
+        
+        /* FOOTER (NUEVO) */
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+            border-top: 1px solid #f3f4f6;
+            padding: 1rem;
+            z-index: 40;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.02);
+        }
+        body.mode-detail footer {
+            transform: translateY(100%);
+        }
+        
+        /* ANIMACIÓN DE COLOR DEL COPYRIGHT */
+        @keyframes montessoriCycle {
+            0% { color: #002060; }   /* Blue */
+            25% { color: #757575; }  /* Grey */
+            50% { color: #C00000; }  /* Red */
+            75% { color: #757575; }  /* Grey */
+            100% { color: #002060; } /* Blue */
+        }
+        .animate-montessori-cycle {
+            animation: montessoriCycle 8s infinite ease-in-out;
+        }
+
+        /* CUSTOM INPUTS/SELECTS (Estilos preservados) */
+        .custom-select-container { position: relative; width: 100%; }
+        .custom-select-trigger { display: flex; align-items: center; justify-content: center; width: 100%; background-color: #fff; cursor: pointer; transition: all 0.2s; }
+        .style-pill .custom-select-trigger { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9999px; padding: 0.5rem 1.5rem; font-size: 0.75rem; font-weight: 700; color: #334155; justify-content: center; gap: 0; }
+        .style-pill .custom-select-trigger:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
+        .style-input .custom-select-trigger { background-color: rgba(249, 250, 251, 0.3); border: 2px solid #f3f4f6; border-radius: 0.75rem; padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 500; justify-content: space-between; color: #1f2937; height: 46px; }
+        .style-input .custom-select-trigger:hover { background-color: #fff; border-color: #e5e7eb; }
+        .custom-input-wrapper { display: none; width: 100%; height: 46px; background-color: #fff; border: 2px solid #002060; border-radius: 0.75rem; padding: 0 1rem; align-items: center; position: relative; }
+        .cat-input-field { flex: 1; border: none; outline: none; background: transparent; font-size: 0.875rem; font-weight: 600; color: #002060; padding-left: 8px; padding-right: 32px; }
+        .cat-color-indicator { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #e2e8f0; transition: transform 0.2s; flex-shrink: 0; }
+        .cat-color-indicator:hover { transform: scale(1.1); box-shadow: 0 0 0 2px #002060; }
+        .arrow-return { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer; transition: color 0.2s; }
+        .arrow-return:hover { color: #002060; }
+        .custom-options { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: white; border-radius: 1rem; box-shadow: 0 10px 40px -5px rgba(0, 0, 0, 0.15); border: 1px solid #f1f5f9; z-index: 100; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden; max-height: 250px; overflow-y: auto; }
+        .custom-select-container.open .custom-options { opacity: 1; visibility: visible; transform: translateY(0); }
+        .custom-option { padding: 0.75rem 1rem; cursor: pointer; transition: background 0.15s; font-size: 0.875rem; color: #475569; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+        .custom-option:hover { background-color: #f8fafc; color: #002060; }
+        .custom-option.selected { background-color: #eff6ff; color: #002060; font-weight: 700; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+        .dot-academico { background: #002060; }
+        .dot-festivo { background: #C00000; }
+        .dot-institucional { background: #4b5563; }
+        .dot-extracurricular { background: #FFD966; }
+        .dot-custom { background: #0d9488; }
+        .popup-panel { position: absolute; top: calc(100% + 6px); left: 0; width: 280px; background: white; border-radius: 1rem; box-shadow: 0 10px 40px -5px rgba(0,0,0,0.25); padding: 1rem; z-index: 200; border: 1px solid #e2e8f0; display: none; opacity: 0; transform: translateY(-10px); transition: all 0.2s ease; }
+        .popup-panel.color-mode { width: 100%; left: 0; }
+        .popup-panel.show { display: block; opacity: 1; transform: translateY(0); }
+        .cp-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+        .cp-option { width: 100%; aspect-ratio: 1; border-radius: 50%; cursor: pointer; transition: transform 0.1s; border: 2px solid transparent; }
+        .cp-option:hover { transform: scale(1.15); z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .cp-option.selected { transform: scale(1.15); border-color: #1e293b; box-shadow: 0 0 0 2px #fff inset; }
+        .dp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+        .dp-day-head { font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; padding-bottom: 4px; }
+        .dp-day { font-size: 0.85rem; padding: 6px 0; border-radius: 6px; cursor: pointer; color: #334155; transition: bg 0.1s; }
+        .dp-day:hover:not(:empty) { background: #f1f5f9; }
+        .dp-day.selected { background: #002060; color: white; font-weight: bold; }
+        .dp-day.today { border: 1px solid #002060; color: #002060; }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+        
+        /* --- LOADING ANIMATION (Estándar) --- */
+        #loading-overlay { position: fixed; inset: 0; background: white; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s; }
+        #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+        
+        .montessori-loader { display: flex; gap: 8px; margin-bottom: 1rem; }
+        .m-dot { width: 16px; height: 16px; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .m-dot.blue { background-color: #002060; animation-delay: -0.32s; }
+        .m-dot.red { background-color: #C00000; animation-delay: -0.16s; }
+        .m-dot.grey { background-color: #757575; }
+        
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
+</head>
+<body class="text-slate-800 font-sans antialiased bg-white">
+    
+    <!-- Loading Screen Estándar -->
+    <div id="loading-overlay">
+        <div class="montessori-loader">
+            <div class="m-dot blue"></div>
+            <div class="m-dot red"></div>
+            <div class="m-dot grey"></div>
+        </div>
+        <p class="text-montessori-blue font-bold text-sm tracking-widest uppercase animate-pulse">Sincronizando Agenda...</p>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-100 h-16 flex-shrink-0 w-full shadow-sm">
+        <div class="w-full px-6 h-full flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="logo-container logo-sm select-none flex items-center gap-3 cursor-default">
+                    <div class="text-section flex flex-col items-center">
+                        <div class="text-colegio">COLEGIO</div>
+                        <div class="text-pinceladas">Pinceladas</div>
+                        <div class="text-montessori-sub">MONTESSORI</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 md:gap-4 ml-auto">
+                <div id="year-controls" class="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-200 transition-all">
+                    <button id="btn-prev-cycle" onclick="changeCycle(-1)" class="w-6 h-6 flex items-center justify-center rounded hover:bg-white text-gray-500 hover:text-montessori-blue transition-all" title="Ciclo Anterior">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <span id="current-year-display" class="px-3 text-xs font-black text-montessori-blue uppercase tracking-wide min-w-[140px] text-center">
+                        AÑO ESCOLAR 2025-2026
+                    </span>
+                    <button id="btn-next-cycle" onclick="changeCycle(1)" class="w-6 h-6 flex items-center justify-center rounded hover:bg-white text-gray-500 hover:text-montessori-blue transition-all" title="Siguiente Ciclo">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+
+                <button onclick="openModal('event-modal')" class="bg-montessori-blue hover:bg-blue-900 text-white p-2 md:px-5 md:py-2.5 rounded-full shadow-lg shadow-blue-900/10 transition-all active:scale-95 flex items-center gap-2 group ml-2">
+                    <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                    <span class="hidden md:inline font-bold text-sm tracking-wide">Nuevo</span>
+                </button>
+            </div>
+        </div>
+        <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent opacity-0 transition-opacity duration-300 hover-handle"></div>
+    </header>
+
+    <main class="flex-1 w-full h-full relative overflow-hidden bg-white">
+        <!-- VISTA 1: Selector de Meses -->
+        <div id="view-month-selector" class="absolute inset-0 p-4 md:p-6 overflow-y-auto w-full pb-32">
+            <div class="max-w-[1600px] mx-auto">
+                <div class="mb-4 flex flex-col gap-1">
+                    <!-- COMPACTACIÓN: Títulos más ajustados -->
+                    <h2 class="text-3xl md:text-4xl font-black text-montessori-blue font-montserrat tracking-tight leading-none mb-1">Panel Principal</h2>
+                    <p class="text-gray-500 font-medium text-sm md:text-base flex items-center gap-2">
+                        Organización por ciclo académico 
+                        <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+                        <span id="year-label" class="font-bold text-montessori-red">Ciclo 25-26</span>
+                    </p>
+                </div>
+                <!-- Grid Compacta: Gap reducido, tarjetas con menor altura mínima -->
+                <div id="month-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 pb-12"></div>
+            </div>
+        </div>
+
+        <!-- VISTA 2: Detalle Mes -->
+        <div id="view-month-detail" class="absolute inset-0 overflow-y-auto hidden bg-white w-full">
+            <div class="w-full min-h-full pt-4">
+                <div class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 px-6 py-4">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <button onclick="showMonthSelector()" class="group flex items-center justify-center w-10 h-10 rounded-full bg-gray-50 hover:bg-montessori-blue border border-gray-100 transition-all">
+                                <svg class="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            </button>
+                            <div>
+                                <span id="detail-year" class="text-xs font-bold text-gray-400 block mb-0.5 font-montserrat tracking-wider">...</span>
+                                <h2 id="detail-month-name" class="text-3xl md:text-4xl font-black text-montessori-red font-montserrat tracking-tighter uppercase leading-none">...</h2>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 self-end">
+                            <div class="custom-select-container style-pill w-60" id="filter-dropdown">
+                                <input type="hidden" id="category-filter" value="all">
+                                <button type="button" class="custom-select-trigger" onclick="toggleCustomSelect('filter-dropdown')">
+                                    <span class="current-value">Ver Todas</span>
+                                </button>
+                                <div class="custom-options">
+                                    <div class="custom-option selected" onclick="selectOption('filter-dropdown', 'all', 'Ver Todas')">Ver Todas</div>
+                                    <div class="custom-option" onclick="selectOption('filter-dropdown', 'oficiales', 'Oficiales')"><span class="dot dot-festivo"></span> Oficiales</div>
+                                    <div class="custom-option" onclick="selectOption('filter-dropdown', 'academico', 'Académicas')"><span class="dot dot-academico"></span> Académicas</div>
+                                    <div class="custom-option" onclick="selectOption('filter-dropdown', 'institucional', 'Institucionales')"><span class="dot dot-institucional"></span> Institucionales</div>
+                                    <div class="custom-option" onclick="selectOption('filter-dropdown', 'extracurricular', 'Extracurriculares')"><span class="dot dot-extracurricular"></span> Extracurriculares</div>
+                                </div>
+                            </div>
+                            <span id="detail-count" class="w-60 h-[34px] flex items-center justify-center text-xs font-bold text-montessori-blue bg-blue-50 rounded-full border border-blue-100">
+                                0 Actividades
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="month-events-container" class="pb-24 pt-2"></div>
+                
+                <div id="month-empty-state" class="hidden flex-col items-center justify-center py-32 text-center opacity-50">
+                    <div class="bg-gray-50 p-6 rounded-full mb-4">
+                        <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-400">Sin actividades</h3>
+                    <p class="text-sm text-gray-400 mt-2">Este mes no tiene eventos registrados con el filtro actual.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer con Copyright y Link -->
+    <footer class="bg-white/90 backdrop-blur-sm border-t border-gray-100">
+        <div class="text-center text-[10px] sm:text-xs">
+            <a href="https://cjce21.github.io/PORTAFOLIO/" target="_blank" class="animate-montessori-cycle font-medium transition-opacity hover:opacity-80" style="text-decoration: none !important;" title="Visitar Portafolio">© 2026 Agenda Escolar | Desarrollado por Didac-Click Group</a>
+        </div>
+    </footer>
+
+    <div id="toast-container">
+        <div id="toast" class="toast">Agenda actualizada</div>
+    </div>
+
+    <!-- Modal: Add/Edit Event -->
+    <div id="event-modal" class="fixed inset-0 z-[100] flex items-center justify-center modal-backdrop hidden opacity-0 transition-opacity duration-300" onclick="if(event.target === this) closeModal('event-modal')">
+        <div class="bg-white rounded-3xl shadow-modal w-full max-w-lg mx-4 overflow-visible transform scale-95 transition-transform duration-300 border border-gray-100 relative" id="event-modal-content">
+            <div class="px-8 py-6 flex justify-between items-center border-b border-gray-50">
+                <h3 class="text-montessori-blue font-black text-2xl font-montserrat" id="modal-title">Nueva Actividad</h3>
+                <button onclick="closeModal('event-modal')" class="p-2 hover:bg-gray-50 rounded-full transition-colors"><svg class="w-6 h-6 text-gray-400 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            
+            <form id="event-form" onsubmit="handleEventSubmit(event)" class="p-8 space-y-5">
+                <input type="hidden" id="event-id">
+                <input type="hidden" id="event-readonly-flag">
+                
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Título del Evento</label>
+                    <input type="text" id="event-title" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-montessori-blue/50 focus:ring-0 outline-none transition-all text-base font-semibold text-gray-800 placeholder-gray-300 bg-gray-50/30 focus:bg-white" placeholder="Ej: Feria de Ciencias">
+                </div>
+                
+                <div class="flex gap-4">
+                    <!-- DATE PICKER -->
+                    <div class="w-28 flex-shrink-0 space-y-2 relative">
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Fecha</label>
+                        <input type="hidden" id="event-date" required>
+                        <div class="custom-select-container style-input" onclick="toggleDatePicker()">
+                            <div class="custom-select-trigger" id="date-trigger-text">
+                                <span>--/--/--</span>
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                        </div>
+                        <div id="datepicker-popup" class="popup-panel"></div>
+                    </div>
+
+                    <!-- CATEGORY -->
+                    <div class="flex-1 space-y-2 relative">
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Categoría</label>
+                        <div class="custom-select-container style-input" id="form-category-dropdown">
+                            <input type="hidden" id="event-category-select" value="institucional">
+                            <button type="button" class="custom-select-trigger" onclick="toggleCustomSelect('form-category-dropdown')">
+                                <span class="current-value">Institucional</span>
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div class="custom-input-wrapper" id="custom-input-mode">
+                                <input type="hidden" id="event-color-custom" value="#0d9488">
+                                <div class="cat-color-indicator mr-2" id="color-trigger" style="background-color: #0d9488;" onclick="toggleColorPicker()" title="Cambiar color"></div>
+                                <input type="text" id="event-category-custom" class="cat-input-field" placeholder="Nombre de categoría...">
+                                <div class="arrow-return" onclick="resetToDropdown()" title="Volver a lista">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                                <div id="colorpicker-popup" class="popup-panel color-mode">
+                                    <div class="cp-grid" id="color-grid"></div>
+                                </div>
+                            </div>
+                            <div class="custom-options">
+                                <div class="custom-option selected" onclick="selectOption('form-category-dropdown', 'institucional', 'Institucional')"><span class="dot dot-institucional"></span> Institucional</div>
+                                <div class="custom-option" onclick="selectOption('form-category-dropdown', 'academico', 'Académico')"><span class="dot dot-academico"></span> Académico</div>
+                                <div class="custom-option" onclick="selectOption('form-category-dropdown', 'festivo', 'Festivo / Feriado')"><span class="dot dot-festivo"></span> Festivo / Feriado</div>
+                                <div class="custom-option" onclick="selectOption('form-category-dropdown', 'extracurricular', 'Extracurriculares')"><span class="dot dot-extracurricular"></span> Extracurriculares</div>
+                                <div class="custom-option" onclick="selectOption('form-category-dropdown', 'custom', '+ Otra (Personalizada)')"><span class="dot dot-custom"></span> + Otra</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Descripción</label>
+                    <textarea id="event-desc" rows="3" class="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-montessori-blue/50 outline-none text-sm bg-gray-50/30 focus:bg-white resize-none" placeholder="Detalles opcionales..."></textarea>
+                </div>
+
+                <div id="official-event-alert" class="hidden bg-blue-50 text-montessori-blue p-3 rounded-lg text-xs font-semibold flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Evento Oficial: La eliminación está deshabilitada.
+                </div>
+
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('event-modal')" class="px-6 py-3 text-sm font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-colors">Cancelar</button>
+                    <button type="submit" class="px-8 py-3 text-sm font-bold text-white bg-montessori-blue hover:bg-blue-900 rounded-xl shadow-lg shadow-blue-900/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Comments -->
+    <div id="comment-modal" class="fixed inset-0 z-[100] flex items-center justify-center modal-backdrop hidden opacity-0 transition-opacity duration-300" onclick="if(event.target === this) closeModal('comment-modal')">
+        <div class="bg-white rounded-2xl shadow-modal w-full max-w-lg mx-4 overflow-hidden transform scale-95 transition-transform duration-300 h-[500px] flex flex-col border border-gray-100">
+            <div class="px-6 py-4 flex justify-between items-center border-b border-gray-50">
+                <div>
+                    <h3 class="text-montessori-blue font-bold text-lg">Notas</h3>
+                    <p class="text-xs text-gray-400 font-medium max-w-[200px] truncate" id="comment-event-title">...</p>
+                </div>
+                <button onclick="closeModal('comment-modal')" class="text-gray-400 hover:text-red-500 transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div id="comments-list" class="flex-1 overflow-y-auto p-6 space-y-4 bg-white"></div>
+            <form onsubmit="handleAddComment(event)" class="p-4 border-t border-gray-50 flex gap-2 flex-shrink-0 bg-white">
+                <input type="hidden" id="comment-event-id">
+                <input type="text" id="new-comment" required placeholder="Escribe una nota..." class="flex-1 px-4 py-3 rounded-xl border border-gray-100 focus:border-montessori-blue outline-none text-sm bg-gray-50 focus:bg-white transition-colors">
+                <button type="submit" class="p-3 bg-montessori-blue text-white rounded-xl hover:bg-blue-900 transition-colors shadow-md">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE SEGURIDAD -->
+    <script>
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('keydown', function(e) {
+            if(e.key === 'F12') { e.preventDefault(); return false; }
+            if(e.ctrlKey && e.shiftKey && e.key === 'I') { e.preventDefault(); return false; }
+            if(e.ctrlKey && e.shiftKey && e.key === 'J') { e.preventDefault(); return false; }
+            if(e.ctrlKey && e.key === 'u') { e.preventDefault(); return false; }
+        });
+    </script>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyQcrSsIy0vlYaBcpSauOhh0wRgF8FNie2YQ7uBFw8Zr-5lVzM5mMMdBX0NAy0sCSdDyQ/exec";
+
+        let allEvents = [];
+        let currentMonthView = null;
+        let pollingInterval = null;
+        let quoteInterval = null;
+        
+        // --- LIMITS ---
+        const MIN_CYCLE_YEAR = 2024;
+        const MAX_CYCLE_YEAR = 2026;
+        let currentCycleStartYear = 2025; 
+
+        let currentFilter = 'all';
+
+        // --- CYCLE MANAGEMENT ---
+        function getSchoolMonths(startYear) {
+             return [
+                { year: startYear, month: 7 }, // Ago
+                { year: startYear, month: 8 }, // Sep
+                { year: startYear, month: 9 }, // Oct
+                { year: startYear, month: 10 }, // Nov
+                { year: startYear, month: 11 }, // Dic
+                { year: startYear + 1, month: 0 }, // Ene
+                { year: startYear + 1, month: 1 }, // Feb
+                { year: startYear + 1, month: 2 }, // Mar
+                { year: startYear + 1, month: 3 }, // Abr
+                { year: startYear + 1, month: 4 }, // May
+                { year: startYear + 1, month: 5 }, // Jun
+                { year: startYear + 1, month: 6 }, // Jul
+            ];
+        }
+
+        const teacherTips = [
+            "La educación es el arma más poderosa para cambiar el mundo.",
+            "El niño es el padre del hombre. - Montessori",
+            "Siembra en los niños ideas buenas, aunque no las entiendan.",
+            "Enseñar es dejar una huella en la vida de una persona.",
+            "La primera tarea de la educación es agitar la vida, pero dejarla libre para que se desarrolle.",
+            "Ayúdame a hacerlo por mí mismo."
+        ];
+
+        // --- INIT & LOGIC ---
+        function initApp() {
+            updateNavigationState(); 
+            updateCycleDisplay();
+            showMonthSelector();
+            initColorGrid();
+            
+            fetchEvents(false); 
+            startPolling();
+
+            // Iniciar rotación de frases
+            startQuoteRotation();
+
+            document.addEventListener('click', (e) => {
+                document.querySelectorAll('.custom-select-container').forEach(container => {
+                    const isInputMode = container.classList.contains('editing');
+                    if (!container.contains(e.target) && !isInputMode) container.classList.remove('open');
+                });
+                
+                const dp = document.getElementById('datepicker-popup');
+                const dt = document.getElementById('date-trigger-text');
+                if(dp && dt && !dp.contains(e.target) && !dt.contains(e.target)) dp.classList.remove('show');
+
+                const cp = document.getElementById('colorpicker-popup');
+                const ct = document.getElementById('color-trigger');
+                if(cp && ct && !cp.contains(e.target) && !ct.contains(e.target)) cp.classList.remove('show');
+            });
+        }
+
+        function startPolling() {
+            if(pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(() => {
+                const isModalOpen = !document.getElementById('event-modal').classList.contains('hidden');
+                if(!isModalOpen) {
+                    fetchEvents(true); // Actualización silenciosa
+                }
+            }, 15000); 
+        }
+
+        // --- QUOTE ROTATION LOGIC ---
+        function startQuoteRotation() {
+            if(quoteInterval) clearInterval(quoteInterval);
+            quoteInterval = setInterval(() => {
+                updateQuote();
+            }, 10000); // Cada 10 segundos
+        }
+
+        function updateQuote() {
+            const card = document.getElementById('quote-card');
+            const textEl = document.getElementById('quote-text');
+            if(!card || !textEl) return;
+
+            // Fade out text
+            textEl.style.opacity = '0';
+            
+            setTimeout(() => {
+                // Change text and color
+                const randomTip = teacherTips[Math.floor(Math.random() * teacherTips.length)];
+                
+                // Reiniciar clases base
+                textEl.className = "font-chewy text-white leading-tight tracking-wide transition-opacity duration-300";
+                
+                // Lógica de ajuste de tamaño de fuente (Clamping)
+                const len = randomTip.length;
+                if (len > 80) {
+                    textEl.classList.add('text-lg'); // Muy pequeña para textos largos
+                } else if (len > 50) {
+                    textEl.classList.add('text-xl'); // Mediana
+                } else {
+                    textEl.classList.add('text-2xl', 'md:text-3xl'); // Grande para frases cortas
+                }
+
+                textEl.textContent = `"${randomTip}"`;
+                
+                // Toggle theme classes for color transition
+                if(card.classList.contains('theme-blue')) {
+                    card.classList.remove('theme-blue');
+                    card.classList.add('theme-red');
+                } else {
+                    card.classList.remove('theme-red');
+                    card.classList.add('theme-blue');
+                }
+                
+                // Fade in text
+                textEl.style.opacity = '1';
+            }, 300); // Esperar a que la opacidad baje
+        }
+
+        async function fetchEvents(isBackground = false) {
+            if(!isBackground) document.getElementById('loading-overlay').classList.remove('hidden');
+            
+            try {
+                const cycleStr = `${currentCycleStartYear}-${currentCycleStartYear + 1}`;
+                const url = `${API_URL}?action=get&cycle=${cycleStr}`;
+                const noCacheUrl = url + "&t=" + new Date().getTime();
+
+                const response = await fetch(noCacheUrl);
+                const text = await response.text();
+                
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch(e) {
+                    if(!isBackground) throw new Error("Respuesta inválida");
+                    return; 
+                }
+                
+                if(result.status === 'success') {
+                    const newData = result.data;
+                    const currentDataStr = JSON.stringify(allEvents);
+                    const newDataStr = JSON.stringify(newData);
+
+                    if (currentDataStr !== newDataStr) {
+                        console.log("Cambios detectados, actualizando interfaz...");
+                        allEvents = newData;
+                        // Solo renderizar grid si está visible, para no romper transiciones
+                        if(!document.getElementById('view-month-selector').classList.contains('hidden')) {
+                             renderMonthGrid();
+                        }
+                        if (currentMonthView && !document.getElementById('view-month-detail').classList.contains('hidden')) {
+                             renderEventsForMonth(currentMonthView.year, currentMonthView.month);
+                        }
+                        if(isBackground) showToast("Sincronizado");
+                    }
+                } 
+            } catch(e) { 
+                console.error("Error Fetch:", e); 
+                if(!isBackground) showToast("Fallo de conexión");
+            } finally {
+                if(!isBackground) document.getElementById('loading-overlay').classList.add('hidden');
+            }
+        }
+
+        // --- CUSTOM DROPDOWN ---
+        function toggleCustomSelect(id) {
+            const container = document.getElementById(id);
+            if(container.classList.contains('editing')) return;
+            document.querySelectorAll('.custom-select-container').forEach(c => { if(c !== container) c.classList.remove('open'); });
+            container.classList.toggle('open');
+        }
+
+        function selectOption(containerId, value, text) {
+            const container = document.getElementById(containerId);
+            const hiddenInput = container.querySelector('input[type="hidden"]');
+            const displaySpan = container.querySelector('.current-value');
+            const options = container.querySelectorAll('.custom-option');
+
+            hiddenInput.value = value;
+            displaySpan.textContent = text;
+            options.forEach(opt => opt.classList.remove('selected'));
+            
+            if(containerId === 'filter-dropdown') {
+                applyFilter();
+                container.classList.remove('open');
+            } else if (containerId === 'form-category-dropdown') {
+                if(value === 'custom') {
+                    container.classList.remove('open'); 
+                    activateCustomInputMode(container); 
+                } else {
+                    deactivateCustomInputMode(container);
+                    container.classList.remove('open');
+                }
+            }
+        }
+
+        // --- INPUT MODE LOGIC ---
+        function activateCustomInputMode(container) {
+            container.classList.add('editing');
+            document.getElementById('custom-input-mode').style.display = 'flex';
+            document.getElementById('form-category-dropdown').querySelector('.custom-select-trigger').style.display = 'none';
+            document.getElementById('event-category-custom').focus();
+            toggleColorPicker();
+        }
+
+        function deactivateCustomInputMode(container) {
+            container.classList.remove('editing');
+            document.getElementById('custom-input-mode').style.display = 'none';
+            document.getElementById('form-category-dropdown').querySelector('.custom-select-trigger').style.display = 'flex';
+            document.getElementById('colorpicker-popup').classList.remove('show');
+        }
+        
+        function resetToDropdown() {
+            const container = document.getElementById('form-category-dropdown');
+            selectOption('form-category-dropdown', 'institucional', 'Institucional');
+            deactivateCustomInputMode(container);
+            container.classList.add('open');
+        }
+
+        // --- COLOR PICKER ---
+        const PALETTE = [
+            '#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981', '#06B6D4', 
+            '#3B82F6', '#6366F1', '#8B5CF6', '#D946EF', '#F43F5E', '#64748B', 
+            '#8B4513', '#2E8B57', '#4682B4', '#1E293B', '#7C3AED', '#DB2777'
+        ];
+
+        function initColorGrid() {
+            const grid = document.getElementById('color-grid');
+            grid.innerHTML = '';
+            PALETTE.forEach(color => {
+                const div = document.createElement('div');
+                div.className = 'cp-option';
+                div.style.backgroundColor = color;
+                div.onclick = () => selectColor(color);
+                grid.appendChild(div);
+            });
+        }
+
+        function toggleColorPicker() {
+            const popup = document.getElementById('colorpicker-popup');
+            popup.classList.toggle('show');
+        }
+
+        function selectColor(color) {
+            document.getElementById('event-color-custom').value = color;
+            document.getElementById('color-trigger').style.backgroundColor = color;
+            document.getElementById('colorpicker-popup').classList.remove('show');
+        }
+
+        // --- DATE PICKER LOGIC ---
+        let pickerDate = new Date();
+        function toggleDatePicker() {
+            const popup = document.getElementById('datepicker-popup');
+            const currentVal = document.getElementById('event-date').value;
+            if(currentVal) {
+                const parts = currentVal.split('-');
+                pickerDate = new Date(parseInt(parts[0]), parseInt(parts[1])-1, 1);
+            } else if (currentMonthView) {
+                pickerDate = new Date(currentMonthView.year, currentMonthView.month, 1);
+            } else {
+                pickerDate = new Date(currentCycleStartYear, 7, 1);
+            }
+            renderDatePicker();
+            popup.classList.add('show');
+        }
+
+        function changePickerMonth(delta) {
+            pickerDate.setMonth(pickerDate.getMonth() + delta);
+            renderDatePicker();
+        }
+
+        function renderDatePicker() {
+            const popup = document.getElementById('datepicker-popup');
+            const year = pickerDate.getFullYear();
+            const month = pickerDate.getMonth();
+            const monthName = monthNames[month];
+            
+            let html = `
+                <div class="dp-header">
+                    <button type="button" onclick="changePickerMonth(-1)" class="p-1 hover:bg-gray-100 rounded"><svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+                    <span class="font-bold text-sm text-montessori-blue">${monthName} ${year}</span>
+                    <button type="button" onclick="changePickerMonth(1)" class="p-1 hover:bg-gray-100 rounded"><svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+                </div>
+                <div class="dp-grid">
+            `;
+            const days = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+            days.forEach(d => html += `<div class="dp-day-head">${d}</div>`);
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const selectedVal = document.getElementById('event-date').value;
+            
+            for(let i=0; i<firstDay; i++) html += `<div class="dp-day"></div>`;
+            for(let i=1; i<=daysInMonth; i++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                const isSelected = dateStr === selectedVal;
+                let classes = 'dp-day';
+                if(isSelected) classes += ' selected';
+                html += `<div class="${classes}" onclick="selectDate('${dateStr}')">${i}</div>`;
+            }
+            html += `</div>`;
+            popup.innerHTML = html;
+        }
+
+        function selectDate(dateStr) {
+            document.getElementById('event-date').value = dateStr;
+            const parts = dateStr.split('-');
+            document.getElementById('date-trigger-text').innerHTML = `<span class="font-bold text-montessori-blue">${parts[2]}/${parts[1]}/${parts[0]}</span>`;
+            document.getElementById('datepicker-popup').classList.remove('show');
+        }
+
+        // --- CYCLE NAVIGATION & RENDER ---
+        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+        function changeCycle(delta) {
+            const nextYear = currentCycleStartYear + delta;
+            
+            if (nextYear < MIN_CYCLE_YEAR || nextYear > MAX_CYCLE_YEAR) return;
+            
+            currentCycleStartYear = nextYear;
+            updateCycleDisplay();
+            updateNavigationState();
+            
+            fetchEvents(false); 
+        }
+        
+        function updateNavigationState() {
+            const prevBtn = document.getElementById('btn-prev-cycle');
+            const nextBtn = document.getElementById('btn-next-cycle');
+            
+            if (prevBtn) {
+                if (currentCycleStartYear <= MIN_CYCLE_YEAR) {
+                    prevBtn.disabled = true;
+                    prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    prevBtn.disabled = false;
+                    prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+
+            if (nextBtn) {
+                if (currentCycleStartYear >= MAX_CYCLE_YEAR) {
+                    nextBtn.disabled = true;
+                    nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    nextBtn.disabled = false;
+                    nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+        
+        function updateCycleDisplay() {
+            const displayEl = document.getElementById('current-year-display');
+            if (displayEl) {
+                displayEl.textContent = `AÑO ESCOLAR ${currentCycleStartYear}-${currentCycleStartYear + 1}`;
+            }
+            
+            const labelEl = document.getElementById('year-label');
+            if (labelEl) {
+                labelEl.textContent = `Ciclo ${currentCycleStartYear % 100}-${(currentCycleStartYear + 1) % 100}`;
+            }
+        }
+
+        function showMonthSelector() {
+            document.getElementById('view-month-selector').classList.remove('hidden');
+            document.getElementById('view-month-detail').classList.add('hidden');
+            document.body.classList.remove('mode-detail');
+            renderMonthGrid();
+        }
+
+        function renderMonthGrid() {
+            const grid = document.getElementById('month-grid');
+            // Nota: Limpiamos el grid, pero si la rotación estaba activa, se reiniciará al crear el nuevo elemento.
+            grid.innerHTML = '';
+            
+            const months = getSchoolMonths(currentCycleStartYear);
+            
+            months.forEach((m, index) => {
+                // SPECIAL CARD FOR JULY (Last one) - Versión Mejorada
+                if (index === 11) {
+                    const tip = teacherTips[0]; // Empieza con el primero
+                    const card = document.createElement('div');
+                    card.id = "quote-card";
+                    // theme-blue por defecto
+                    // COMPACTACIÓN: min-h reducido (170px) y padding ajustado
+                    card.className = `month-card special theme-blue p-5 rounded-3xl shadow-clean flex flex-col justify-center items-center min-h-[170px] relative overflow-hidden group slide-up`;
+                    
+                    card.innerHTML = `
+                        <div class="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white opacity-10 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div class="text-center z-10 relative px-2 w-full h-full flex flex-col justify-center">
+                            <span class="text-xs font-bold text-blue-200 uppercase tracking-widest mb-2 block font-montserrat">Reflexión Docente</span>
+                            <!-- TEXTO AJUSTABLE -->
+                            <p id="quote-text" class="text-xl md:text-2xl font-chewy text-white leading-tight tracking-wide transition-opacity duration-300">"${tip}"</p>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                    return;
+                }
+
+                const count = allEvents.filter(e => {
+                    const d = new Date(e.date);
+                    if(isNaN(d.getTime())) return false;
+                    const dFix = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+                    return dFix.getFullYear() === m.year && dFix.getMonth() === m.month;
+                }).length;
+
+                const card = document.createElement('div');
+                const isEmpty = count === 0;
+                // COMPACTACIÓN: min-h más bajo, padding más compacto (p-5 en vez de p-8)
+                card.className = `month-card bg-white p-5 rounded-3xl border border-gray-100 shadow-clean flex flex-col justify-between min-h-[170px] relative overflow-hidden group slide-up ${isEmpty ? 'empty' : ''}`;
+                card.onclick = () => showMonthDetail(m.year, m.month);
+                const isRed = m.month % 2 === 0;
+                const accentColor = isRed ? 'text-montessori-red' : 'text-montessori-blue';
+                const bgColor = isRed ? 'bg-red-50' : 'bg-blue-50';
+
+                // LÓGICA INVERSA PARA EL BOTÓN DE FLECHA
+                // Si la tarjeta es Roja (isRed), el hover debe ser Azul.
+                // Si la tarjeta es Azul (!isRed), el hover debe ser Rojo.
+                const hoverBtnBg = isRed ? 'group-hover:bg-montessori-blue' : 'group-hover:bg-montessori-red';
+                const hoverBtnBorder = isRed ? 'group-hover:border-montessori-blue' : 'group-hover:border-montessori-red';
+
+                card.innerHTML = `
+                    <div class="absolute -right-6 -top-6 w-32 h-32 rounded-full ${bgColor} opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div class="z-10 relative">
+                        <span class="text-xs font-bold text-gray-400 font-montserrat tracking-widest uppercase mb-1 block">${m.year}</span>
+                        <h3 class="text-3xl md:text-4xl font-black ${accentColor} font-montserrat mt-0 capitalize tracking-tight">${monthNames[m.month]}</h3>
+                    </div>
+                    <div class="flex items-center justify-between z-10 mt-3">
+                        <span class="text-xs font-bold ${isEmpty ? 'text-gray-300' : 'text-gray-500 bg-gray-50'} px-3 py-1.5 rounded-xl transition-colors group-hover:bg-white/80">${count} Eventos</span>
+                        <div class="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-sm ${hoverBtnBg} ${hoverBtnBorder} group-hover:text-white transition-all transform group-hover:rotate-[-45deg]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function showMonthDetail(year, month) {
+            currentMonthView = { year, month };
+            document.getElementById('view-month-selector').classList.add('hidden');
+            document.getElementById('view-month-detail').classList.remove('hidden');
+            document.getElementById('view-month-detail').classList.add('fade-in');
+            document.getElementById('detail-year').textContent = year;
+            document.getElementById('detail-month-name').textContent = monthNames[month];
+            document.body.classList.add('mode-detail');
+            renderEventsForMonth(year, month);
+        }
+
+        function renderEventsForMonth(year, month) {
+            const container = document.getElementById('month-events-container');
+            container.innerHTML = '';
+            const rawEvents = allEvents.filter(e => {
+                const d = new Date(e.date);
+                if(isNaN(d.getTime())) return false;
+                const dFix = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+                return dFix.getFullYear() === year && dFix.getMonth() === month;
+            });
+            const events = rawEvents.filter(meetsFilter).sort((a,b) => new Date(a.date) - new Date(b.date));
+            document.getElementById('detail-count').textContent = `${events.length} Actividades`;
+            
+            if (events.length === 0) {
+                document.getElementById('month-empty-state').classList.remove('hidden');
+                document.getElementById('month-empty-state').classList.add('flex');
+            } else {
+                document.getElementById('month-empty-state').classList.add('hidden');
+                document.getElementById('month-empty-state').classList.remove('flex');
+            }
+            
+            events.forEach(e => {
+                const d = new Date(e.date);
+                const dFix = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
+                const day = dFix.getDate();
+                const weekday = dFix.toLocaleDateString('es-ES', { weekday: 'long' });
+                let catName = "Evento";
+                let catColorStyle = "background-color: #0d9488;"; 
+                if (e.category === 'institucional') { catName = "Institucional"; catColorStyle = "background-color: #4b5563;"; }
+                else if (e.category === 'academico') { catName = "Académico"; catColorStyle = "background-color: #002060;"; }
+                else if (e.category === 'festivo') { catName = "Festivo"; catColorStyle = "background-color: #C00000;"; }
+                else if (e.category === 'extracurricular') { catName = "Extracurricular"; catColorStyle = "background-color: #FFD966;"; }
+                else if (e.category === 'custom') { 
+                    catName = e.category_custom || "Personalizado"; 
+                    if(e.color_custom) catColorStyle = `background-color: ${e.color_custom};`;
+                }
+                const row = document.createElement('div');
+                row.className = "event-row w-full px-6 py-6 border-b border-gray-100 flex flex-col md:flex-row gap-4 md:items-center group cursor-default";
+                const commentCount = e.comments ? e.comments.length : 0;
+                
+                const deleteBtn = e.readOnly ? '' : `<button onclick="deleteEvent('${e.id}')" class="p-2 text-gray-300 hover:text-montessori-red transition-colors" title="Eliminar"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>`;
+                
+                row.innerHTML = `<div class="flex md:flex-col items-center md:items-start gap-3 md:gap-0 min-w-[80px]"><span class="text-3xl font-black text-gray-800 font-montserrat leading-none">${day}</span><span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${weekday.substr(0,3)}</span></div><div class="hidden md:block w-1 h-12 rounded-full" style="${catColorStyle}"></div><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="md:hidden w-2 h-2 rounded-full" style="${catColorStyle}"></span><span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">${catName}</span>${e.readOnly ? '<span class="text-[9px] bg-blue-100 text-montessori-blue px-1.5 py-0.5 rounded font-bold">OFICIAL</span>' : ''}</div><h4 class="text-lg md:text-xl font-bold text-gray-800 leading-tight">${e.title}</h4>${e.description ? `<p class="text-sm text-gray-500 mt-1 max-w-3xl">${e.description}</p>` : ''}</div><div class="flex items-center gap-4 mt-2 md:mt-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><button onclick="openComments('${e.id}')" class="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-montessori-blue transition-colors bg-gray-50 hover:bg-blue-50 px-3 py-2 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>${commentCount > 0 ? `${commentCount}` : 'Notas'}</button><button onclick="editEvent('${e.id}')" class="p-2 text-gray-300 hover:text-montessori-blue transition-colors" title="Editar"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>${deleteBtn}</div>`;
+                container.appendChild(row);
+            });
+        }
+
+        // --- FILTER HELPERS ---
+        function applyFilter() { currentFilter = document.getElementById('category-filter').value; if (currentMonthView) renderEventsForMonth(currentMonthView.year, currentMonthView.month); }
+        function meetsFilter(event) { if (currentFilter === 'all') return true; if (currentFilter === 'oficiales') return event.category === 'festivo' || event.readOnly; return event.category === currentFilter; }
+        
+        // --- MODAL & CRUD ---
+        
+        window.openModal = (modalId, isEdit = false) => {
+            const modal = document.getElementById(modalId);
+            if(modalId === 'event-modal' && !isEdit) {
+                document.getElementById('event-form').reset();
+                document.getElementById('event-id').value = '';
+                document.getElementById('modal-title').textContent = 'Nueva Actividad';
+                deactivateCustomInputMode(document.getElementById('form-category-dropdown'));
+                selectOption('form-category-dropdown', 'institucional', 'Institucional');
+                document.getElementById('official-event-alert').classList.add('hidden');
+                document.getElementById('event-readonly-flag').value = 'false';
+                document.getElementById('date-trigger-text').innerHTML = `<span>Seleccionar</span><svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>`;
+                if (currentMonthView) { const y = currentMonthView.year; const m = String(currentMonthView.month + 1).padStart(2, '0'); selectDate(`${y}-${m}-01`); } else { selectDate(`${currentCycleStartYear}-08-01`); }
+            }
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); modal.querySelector('div').classList.add('scale-100'); }, 10);
+        };
+        window.closeModal = (modalId) => { const modal = document.getElementById(modalId); modal.classList.add('opacity-0'); modal.querySelector('div').classList.remove('scale-100'); modal.querySelector('div').classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 300); };
+        
+        window.editEvent = (id) => {
+            const event = allEvents.find(e => e.id === id);
+            if (!event) return;
+            document.getElementById('event-id').value = id;
+            document.getElementById('event-title').value = event.title;
+            selectDate(event.date);
+            document.getElementById('event-desc').value = event.description || '';
+            document.getElementById('modal-title').textContent = 'Editar Actividad';
+            const isReadOnly = !!event.readOnly;
+            document.getElementById('event-readonly-flag').value = isReadOnly ? 'true' : 'false';
+            if (isReadOnly) document.getElementById('official-event-alert').classList.remove('hidden');
+            else document.getElementById('official-event-alert').classList.add('hidden');
+            const container = document.getElementById('form-category-dropdown');
+            if (event.category === 'custom') {
+                document.getElementById('event-category-select').value = 'custom';
+                activateCustomInputMode(container);
+                document.getElementById('event-category-custom').value = event.category_custom || '';
+                selectColor(event.color_custom || '#0d9488');
+            } else {
+                deactivateCustomInputMode(container);
+                let label = "Institucional"; 
+                if(event.category === 'academico') label = "Académico";
+                if(event.category === 'festivo') label = "Festivo / Feriado";
+                if(event.category === 'extracurricular') label = "Extracurricular";
+                selectOption('form-category-dropdown', event.category, label);
+            }
+            window.openModal('event-modal', true);
+        };
+
+        window.handleEventSubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('event-id').value;
+             const isReadOnly = document.getElementById('event-readonly-flag').value === 'true';
+            const catSelect = document.getElementById('event-category-select').value;
+            const catCustomName = document.getElementById('event-category-custom').value;
+            const catCustomColor = document.getElementById('event-color-custom').value;
+            const data = {
+                id: id,
+                title: document.getElementById('event-title').value,
+                date: document.getElementById('event-date').value,
+                category: catSelect,
+                category_custom: catSelect === 'custom' ? catCustomName : null,
+                color_custom: catSelect === 'custom' ? catCustomColor : null,
+                description: document.getElementById('event-desc').value,
+                readOnly: isReadOnly,
+                cycle: `${currentCycleStartYear}-${currentCycleStartYear + 1}`
+            };
+            
+            closeModal('event-modal');
+            document.getElementById('loading-overlay').classList.remove('hidden');
+
+            try {
+                const action = id ? 'update' : 'create';
+                // Usando no-cors para evitar bloqueo (si es simple) o POST normal
+                // Nota: Apps Script requiere redirect handling. Usamos fetch simple.
+                const response = await fetch(API_URL + `?action=${action}`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showToast(id ? "Actividad actualizada" : "Actividad creada");
+                    fetchEvents(false); // Recargar inmediatamente
+                } else {
+                    showToast("Error al guardar");
+                    console.error(result);
+                }
+            } catch (err) {
+                console.error(err);
+                // Fallback optimista si falla la red para demo visual inmediata
+                if (id) {
+                    const index = allEvents.findIndex(ev => ev.id === id);
+                    if (index !== -1) allEvents[index] = { ...allEvents[index], ...data };
+                } else {
+                    data.id = "temp-" + Date.now();
+                    allEvents.push(data);
+                }
+                if(!document.getElementById('view-month-selector').classList.contains('hidden')) renderMonthGrid();
+                if(currentMonthView) renderEventsForMonth(currentMonthView.year, currentMonthView.month);
+                showToast("Guardado localmente (Sin conexión)");
+            } finally {
+                document.getElementById('loading-overlay').classList.add('hidden');
+            }
+        };
+
+        window.deleteEvent = async (id) => {
+             if(confirm('¿Eliminar actividad permanentemente?')) {
+                document.getElementById('loading-overlay').classList.remove('hidden');
+                try {
+                    const response = await fetch(`${API_URL}?action=delete&id=${id}&cycle=${currentCycleStartYear}-${currentCycleStartYear + 1}`, { method: 'POST' });
+                    const result = await response.json();
+                    if(result.status === 'success') {
+                        showToast("Actividad eliminada");
+                        fetchEvents(false);
+                    } else {
+                        showToast("Error al eliminar");
+                    }
+                } catch(e) {
+                    allEvents = allEvents.filter(e => e.id !== id);
+                    if (!document.getElementById('view-month-selector').classList.contains('hidden')) renderMonthGrid();
+                    if (currentMonthView && !document.getElementById('view-month-detail').classList.contains('hidden')) renderEventsForMonth(currentMonthView.year, currentMonthView.month);
+                    showToast("Eliminado localmente");
+                } finally {
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                }
+            }
+        };
+        
+        // --- COMMENTS (Simplified logic for brevity, assumed similar API call) ---
+        window.openComments = (id) => {
+            const event = allEvents.find(e => e.id === id);
+            if(!event) return;
+            document.getElementById('comment-event-id').value = id;
+            document.getElementById('comment-event-title').textContent = event.title;
+            const list = document.getElementById('comments-list');
+            list.innerHTML = '';
+            
+            if(!event.comments || event.comments.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 text-sm mt-10">No hay notas aún.</div>';
+            } else {
+                event.comments.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = "bg-gray-50 p-3 rounded-lg text-sm text-gray-600 border border-gray-100";
+                    div.innerHTML = `<p>${c.text}</p><span class="text-[10px] text-gray-400 mt-1 block">${new Date(c.date).toLocaleString()}</span>`;
+                    list.appendChild(div);
+                });
+            }
+            window.openModal('comment-modal');
+        }
+
+        window.handleAddComment = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('comment-event-id').value;
+            const text = document.getElementById('new-comment').value;
+            const event = allEvents.find(ev => ev.id === id);
+            
+            // Optimistic
+            const newComment = { text, date: new Date().toISOString() };
+            if(!event.comments) event.comments = [];
+            event.comments.push(newComment);
+            
+            document.getElementById('new-comment').value = '';
+            window.openComments(id); // refresh list
+            
+            // API Call in background
+            fetch(API_URL + `?action=addComment`, {
+                method: 'POST',
+                body: JSON.stringify({ id, text, cycle: `${currentCycleStartYear}-${currentCycleStartYear + 1}` })
+            });
+        }
+
+        // --- HELPERS ---
+        function showToast(msg) { const toast = document.getElementById('toast'); toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+        
+        window.onload = initApp;
+    </script>
+</body>
+</html>

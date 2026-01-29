@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduSite Creator</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "lucide-react": "https://esm.sh/lucide-react@0.303.0"
+        }
+    }
+    </script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+        
+        /* Ocultar Scrollbar */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+
+        .custom-input { 
+            width: 100%; padding: 0.75rem 1rem; border-radius: 0.75rem; 
+            border: 1px solid #e2e8f0; outline: none; transition: all 0.2s; 
+            font-size: 0.95rem; color: #1e293b; background: white;
+        }
+        .custom-input:focus { border-color: #0f172a; box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1); }
+        .custom-input::placeholder { color: #94a3b8; }
+
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .animate-fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50/50 text-gray-800">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useRef } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Plus, Layout, Type, Image as ImageIcon, Video, 
+            Trash2, Save, Heart, MessageCircle, 
+            User, Search, Eye, Edit3, CheckCircle, 
+            X, GripVertical, LogOut, ChevronRight, 
+            Minus, PlayCircle, Grid, Square, MousePointer, LogIn,
+            UserPlus, Shield, UserCircle, Move,
+            List, Quote, ChevronDown, Check, GripHorizontal,
+            Columns, Loader2, ImagePlus, MapPin, Mic
+        } from 'lucide-react';
+
+        // --- CONFIGURACIÓN BACKEND ---
+        // 1. Despliega el código GAS como Aplicación Web.
+        // 2. Pega la URL aquí.
+        // NOTA: Si dejas el texto por defecto, la app usará MODO DEMO (localStorage).
+        const API_URL = "https://script.google.com/macros/s/AKfycbzhxRcIT7s1HWyBusi3dNDgHdIH9yLzx4cUkhKjOkJrUnFlRNSQ6wQNSupVTDgxfoE/exec"; 
+
+        // --- GESTOR DE DATOS HÍBRIDO (DEMO / ONLINE) ---
+        const DB = {
+            USER_KEY: 'edusite_user_session',
+            DEMO_KEY: 'edusite_demo_data',
+
+            isDemo() {
+                return API_URL.includes("PEGAR_TU_URL") || API_URL === "";
+            },
+
+            // Helper para llamadas API
+            async api(payload) {
+                try {
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    return await res.json();
+                } catch (e) {
+                    console.error("Error API:", e);
+                    throw new Error("Error de conexión con el servidor.");
+                }
+            },
+
+            // Helper para Modo Demo (LocalStorage)
+            async demoDelay(ms = 600) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            },
+            
+            getLocalData() {
+                const d = localStorage.getItem(this.DEMO_KEY);
+                return d ? JSON.parse(d) : [];
+            },
+            
+            setLocalData(data) {
+                localStorage.setItem(this.DEMO_KEY, JSON.stringify(data));
+            },
+
+            // --- MÉTODOS UNIFICADOS ---
+
+            async getProjects() {
+                if (this.isDemo()) {
+                    await this.demoDelay(400);
+                    return this.getLocalData();
+                }
+                const res = await this.api({ action: 'getProjects' });
+                return res.success ? res.projects : [];
+            },
+
+            async getProjectDetails(id) {
+                if (this.isDemo()) {
+                    await this.demoDelay();
+                    const projects = this.getLocalData();
+                    const p = projects.find(x => x.id === id);
+                    return p ? p.blocks : [];
+                }
+                const res = await this.api({ action: 'getProjectDetails', id });
+                return res.success ? res.blocks : [];
+            },
+
+            async saveProject(project) {
+                if (this.isDemo()) {
+                    await this.demoDelay(800);
+                    const projects = this.getLocalData();
+                    const index = projects.findIndex(p => p.id === project.id);
+                    if (index >= 0) projects[index] = { ...projects[index], ...project, updatedAt: new Date().toISOString() };
+                    else projects.push({ ...project, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+                    this.setLocalData(projects);
+                    return true;
+                }
+                const res = await this.api({ action: 'saveProject', project });
+                return res.success;
+            },
+
+            async deleteProject(id) {
+                if (this.isDemo()) {
+                    await this.demoDelay(500);
+                    const projects = this.getLocalData();
+                    const filtered = projects.filter(p => p.id !== id);
+                    this.setLocalData(filtered);
+                    return true;
+                }
+                const res = await this.api({ action: 'deleteProject', id });
+                return res.success;
+            },
+
+            async login(username, password) {
+                if (this.isDemo()) {
+                    await this.demoDelay(600);
+                    const user = { name: username };
+                    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+                    return user;
+                }
+                const res = await this.api({ action: 'login', username, password });
+                if (res.success) {
+                    localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
+                    return res.user;
+                }
+                throw new Error(res.message);
+            },
+
+            async register(username, password) {
+                if (this.isDemo()) {
+                    await this.demoDelay(600);
+                    const user = { name: username };
+                    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+                    return user;
+                }
+                const res = await this.api({ action: 'register', username, password });
+                if (res.success) {
+                    localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
+                    return res.user;
+                }
+                throw new Error(res.message);
+            },
+
+            logout() { localStorage.removeItem(this.USER_KEY); },
+            getUser() { 
+                try {
+                    return JSON.parse(localStorage.getItem(this.USER_KEY)); 
+                } catch(e) { return null; }
+            }
+        };
+
+        // --- CONSTANTES ---
+        const BLOCK_TYPES = [
+            { type: 'header', label: 'Encabezado', icon: Type, category: 'Texto' },
+            { type: 'text', label: 'Párrafo', icon: Layout, category: 'Texto' },
+            { type: 'list', label: 'Lista', icon: List, category: 'Texto' },
+            { type: 'quote', label: 'Cita', icon: Quote, category: 'Texto' },
+            { type: 'split_left', label: 'Img + Texto', icon: Columns, category: 'Diseño' },
+            { type: 'split_right', label: 'Texto + Img', icon: Columns, category: 'Diseño' },
+            { type: 'divider', label: 'Divisor', icon: Minus, category: 'Diseño' },
+            { type: 'spacer', label: 'Espacio', icon: Move, category: 'Diseño' },
+            { type: 'image', label: 'Imagen', icon: ImageIcon, category: 'Medios' },
+            { type: 'video', label: 'Video', icon: PlayCircle, category: 'Medios' },
+            { type: 'cta', label: 'Botón', icon: MousePointer, category: 'Interacción' },
+            { type: 'profile', label: 'Autor', icon: UserCircle, category: 'Interacción' },
+        ];
+
+        // --- COMPONENTES UI ---
+        const Button = ({ children, onClick, variant = 'primary', icon: Icon, className = '', disabled = false, size = 'md' }) => {
+            const sizeClasses = size === 'sm' ? 'px-4 py-2 text-xs' : 'px-6 py-3 text-sm';
+            const variants = {
+                primary: "bg-black text-white hover:bg-gray-800 shadow-lg shadow-gray-200 hover:shadow-xl hover:-translate-y-0.5",
+                secondary: "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 shadow-sm",
+                danger: "bg-white text-gray-900 border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200",
+            };
+            return (
+                <button onClick={onClick} disabled={disabled} className={`flex items-center justify-center rounded-xl font-semibold transition-all duration-300 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${sizeClasses} ${variants[variant]} ${className}`}>
+                    {Icon && <Icon size={size === 'sm' ? 16 : 18} className="mr-2" />}
+                    {children}
+                </button>
+            );
+        };
+
+        const CustomSelect = ({ value, onChange, options }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const containerRef = useRef(null);
+            useEffect(() => {
+                const handleClickOutside = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false); };
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, []);
+            const selectedLabel = options.find(opt => opt.value === value)?.label || value;
+            return (
+                <div className="relative" ref={containerRef}>
+                    <button onClick={() => setIsOpen(!isOpen)} className={`flex items-center justify-between w-full px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-lg hover:border-gray-400 transition-colors ${isOpen ? 'border-gray-900 ring-1 ring-gray-900' : ''}`}>
+                        <span className="truncate mr-2 text-gray-700">{selectedLabel}</span>
+                        <ChevronDown size={14} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl animate-fade-in overflow-hidden">
+                            {options.map((opt) => (
+                                <button key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); }} className={`flex items-center w-full px-3 py-2 text-xs text-left hover:bg-gray-50 transition-colors ${value === opt.value ? 'bg-gray-100 font-semibold text-gray-900' : 'text-gray-600'}`}>
+                                    {value === opt.value && <Check size={12} className="mr-2" />} {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const LoadingOverlay = ({ message = "Cargando..." }) => (
+            <div className="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center animate-fade-in">
+                <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 border-4 border-gray-100 border-t-black rounded-full animate-spin"></div>
+                    <p className="mt-6 text-gray-900 font-bold text-xs tracking-widest uppercase animate-pulse">{message}</p>
+                </div>
+            </div>
+        );
+
+        // --- BLOCK RENDERER ---
+        const BlockRenderer = ({ block, updateBlock, removeBlock, isPreview, index, onDragStart, onDragOver, onDrop }) => {
+            const content = block.content || {};
+            const containerRef = useRef(null);
+
+            const handleMouseDown = (e) => {
+                e.preventDefault();
+                const startY = e.clientY;
+                const startHeight = containerRef.current.offsetHeight;
+                const onMouseMove = (e) => {
+                    const newHeight = startHeight + e.clientY - startY;
+                    if (newHeight > 50) updateBlock(block.id, { ...content, customHeight: newHeight });
+                };
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+
+            const renderInner = () => {
+                switch (block.type) {
+                    case 'header':
+                        return isPreview ? (
+                            <div className={`text-${content.align || 'left'} px-2`}>
+                                <h2 className="font-extrabold leading-tight mb-2" style={{ fontSize: content.size === 'huge' ? '3rem' : content.size === 'large' ? '2.5rem' : '2rem' }}>{content.title || 'Sin Título'}</h2>
+                                {content.subtitle && <p className="text-xl text-gray-500 font-light">{content.subtitle}</p>}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <input value={content.title || ''} onChange={(e) => updateBlock(block.id, { ...content, title: e.target.value })} className="w-full text-4xl font-extrabold bg-transparent border-none focus:ring-0 placeholder-gray-300 tracking-tight" placeholder="Título" />
+                                <input value={content.subtitle || ''} onChange={(e) => updateBlock(block.id, { ...content, subtitle: e.target.value })} className="w-full text-xl text-gray-500 bg-transparent border-none focus:ring-0 placeholder-gray-300 font-light" placeholder="Subtítulo" />
+                                <div className="flex gap-3 pt-3 border-t border-gray-100">
+                                    <div className="w-40"><CustomSelect value={content.align || 'left'} onChange={(val) => updateBlock(block.id, { ...content, align: val })} options={[{ value: 'left', label: 'Izquierda' }, { value: 'center', label: 'Centro' }, { value: 'right', label: 'Derecha' }]} /></div>
+                                    <div className="w-40"><CustomSelect value={content.size || 'medium'} onChange={(val) => updateBlock(block.id, { ...content, size: val })} options={[{ value: 'medium', label: 'Mediano' }, { value: 'large', label: 'Grande' }, { value: 'huge', label: 'Gigante' }]} /></div>
+                                </div>
+                            </div>
+                        );
+                    case 'text':
+                        return isPreview ? (
+                            <div className="prose prose-lg max-w-none text-gray-600 whitespace-pre-line leading-relaxed px-2">{content.text}</div>
+                        ) : (
+                            <textarea value={content.text || ''} onChange={(e) => updateBlock(block.id, { ...content, text: e.target.value })} className="w-full bg-transparent border-none resize-none h-full min-h-[120px] focus:ring-0 text-gray-700 text-lg leading-relaxed placeholder-gray-300" placeholder="Escribe aquí..." />
+                        );
+                    case 'split_left':
+                    case 'split_right':
+                        const isImgLeft = block.type === 'split_left';
+                        const ImgArea = () => (
+                            <div className="flex-1 min-w-[300px]">
+                                {isPreview ? (content.url ? <img src={content.url} className="w-full h-full object-cover rounded-xl shadow-sm" /> : <div className="w-full h-64 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">Sin Imagen</div>) : (
+                                    <div className="h-full flex flex-col gap-2">
+                                        {content.url ? <img src={content.url} className="w-full h-48 object-cover rounded-lg bg-gray-100"/> : <div className="w-full h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs"><ImageIcon className="mr-2"/> Vista</div>}
+                                        <input className="custom-input text-xs" placeholder="URL imagen..." value={content.url || ''} onChange={(e) => updateBlock(block.id, { ...content, url: e.target.value })} />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                        const TxtArea = () => (
+                            <div className="flex-1 min-w-[300px] flex flex-col justify-center space-y-4">
+                                {isPreview ? (
+                                    <div className="prose text-gray-600 whitespace-pre-line leading-relaxed">
+                                        {content.title && <h3 className="text-2xl font-bold text-gray-900 mb-2">{content.title}</h3>}
+                                        {content.text}
+                                    </div>
+                                ) : (
+                                    <>
+                                        <input className="w-full font-bold text-xl bg-transparent border-none focus:ring-0 placeholder-gray-300" placeholder="Título Sección" value={content.title || ''} onChange={(e) => updateBlock(block.id, { ...content, title: e.target.value })} />
+                                        <textarea className="w-full bg-transparent border-none resize-none h-40 focus:ring-0 text-gray-600" placeholder="Contenido..." value={content.text || ''} onChange={(e) => updateBlock(block.id, { ...content, text: e.target.value })} />
+                                    </>
+                                )}
+                            </div>
+                        );
+                        return <div className={`flex flex-col md:flex-row gap-8 ${!isImgLeft && isPreview ? 'md:flex-row-reverse' : ''}`}>{isPreview ? (isImgLeft ? <><ImgArea/><TxtArea/></> : <><TxtArea/><ImgArea/></>) : <><div className="flex-1 border-r border-gray-100 pr-4">{isImgLeft ? <ImgArea/> : <TxtArea/>}</div><div className="flex-1 pl-4">{isImgLeft ? <TxtArea/> : <ImgArea/>}</div></>}</div>;
+                    case 'image':
+                        return <div className="space-y-3 h-full flex flex-col">{!isPreview && <input className="custom-input" placeholder="URL Imagen" value={content.url || ''} onChange={(e) => updateBlock(block.id, { ...content, url: e.target.value })} />}{content.url ? <img src={content.url} className="rounded-xl shadow-sm object-cover flex-1 w-full" /> : <div className="flex-1 min-h-[200px] bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400"><ImageIcon size={32}/></div>}</div>;
+                    case 'video':
+                        return <div className="space-y-3 h-full flex flex-col">{!isPreview && <div className="bg-gray-50 p-4 rounded-xl border border-gray-200"><input className="custom-input bg-white" placeholder="Youtube/Vimeo URL" value={content.url || ''} onChange={(e) => updateBlock(block.id, { ...content, url: e.target.value })} /></div>}{content.url ? <div className="flex-1 min-h-[300px] w-full rounded-xl overflow-hidden bg-black shadow-lg"><iframe src={content.url.replace('watch?v=', 'embed/').replace('vimeo.com/', 'player.vimeo.com/video/')} className="w-full h-full" allowFullScreen></iframe></div> : <div className="flex-1 min-h-[200px] bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 border border-gray-200"><PlayCircle size={40}/></div>}</div>;
+                    default: return <div className="text-gray-400 text-sm p-4 border border-dashed rounded-lg text-center">Bloque {block.type}</div>;
+                }
+            };
+
+            return (
+                <div ref={containerRef} style={content.customHeight ? { minHeight: `${content.customHeight}px` } : {}} draggable={!isPreview} onDragStart={!isPreview ? (e) => onDragStart(e, index) : null} onDragOver={!isPreview ? onDragOver : null} onDrop={!isPreview ? (e) => onDrop(e, index) : null} className={`group relative transition-all duration-300 ${isPreview ? 'mb-8' : 'mb-6 bg-white p-8 rounded-2xl border border-gray-100 hover:border-gray-300 hover:shadow-lg'}`}>
+                    {!isPreview && <><div className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-12 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center text-gray-400 cursor-grab hover:text-gray-900 opacity-0 group-hover:opacity-100 transition-all z-20"><GripVertical size={16} /></div><div className="absolute -top-3 right-4 opacity-0 group-hover:opacity-100 transition-all z-10"><button onClick={() => removeBlock(block.id)} className="p-2 bg-white text-gray-400 hover:text-red-500 border border-gray-200 rounded-full shadow-sm transition-all"><Trash2 size={14}/></button></div><div onMouseDown={handleMouseDown} className="absolute bottom-2 right-2 w-6 h-6 flex items-end justify-end cursor-ns-resize opacity-0 group-hover:opacity-100 p-1"><GripHorizontal size={16} className="text-gray-300 hover:text-gray-600" /></div></>}
+                    <div className={!isPreview ? "pl-4 h-full" : "h-full"}>{renderInner()}</div>
+                </div>
+            );
+        };
+
+        const AuthModal = ({ isOpen, onClose, onLogin }) => {
+            const [isRegister, setIsRegister] = useState(false);
+            const [formData, setFormData] = useState({ name: '', password: '' });
+            const [loading, setLoading] = useState(false);
+            const [isFading, setIsFading] = useState(false);
+
+            useEffect(() => { if(isOpen) setFormData({ name: '', password: '' }); setIsFading(false); }, [isOpen]);
+
+            const toggleMode = () => {
+                setIsFading(true);
+                setTimeout(() => { setIsRegister(!isRegister); setIsFading(false); }, 200);
+            };
+
+            if (!isOpen) return null;
+
+            const handleSubmit = async () => {
+                if (!formData.name.trim() || !formData.password.trim()) return alert("Completa todos los campos");
+                setLoading(true);
+                try {
+                    if (isRegister) await DB.register(formData.name, formData.password);
+                    else await DB.login(formData.name, formData.password);
+                    await onLogin(formData);
+                    onClose();
+                } catch (e) { alert(e.message); }
+                setLoading(false);
+            };
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" onClick={onClose}></div>
+                    <div className="relative bg-white w-full max-w-sm rounded-2xl shadow-2xl p-8 animate-fade-in-up flex flex-col justify-center" style={{ minHeight: '400px' }}>
+                        <div className={`transition-opacity duration-200 ${isFading ? 'opacity-0' : 'opacity-100'}`}>
+                            <div className="text-center mb-6">
+                                <h2 className="text-2xl font-bold text-gray-900">{isRegister ? 'Crear Cuenta' : 'Bienvenido'}</h2>
+                                <p className="text-gray-500 text-sm">Acceso Estudiantes</p>
+                            </div>
+                            <div className="space-y-4">
+                                <div><label className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-1 block">Usuario</label><input autoFocus value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="custom-input" placeholder="Nombre" /></div>
+                                <div><label className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-1 block">Contraseña</label><input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="custom-input" placeholder="••••" /></div>
+                                <Button onClick={handleSubmit} className="w-full py-3 shadow-lg" disabled={loading}>{loading ? 'Procesando...' : (isRegister ? 'Registrarse' : 'Entrar')}</Button>
+                                <div className="text-center pt-4 border-t border-gray-50 mt-4"><button onClick={toggleMode} className="text-sm font-medium text-gray-500 hover:text-gray-900">{isRegister ? '¿Ya tienes cuenta?' : 'Crear cuenta nueva'}</button></div>
+                            </div>
+                        </div>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={20}/></button>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('explore'); 
+            const [sites, setSites] = useState([]);
+            const [activeSite, setActiveSite] = useState(null);
+            const [authModalOpen, setAuthModalOpen] = useState(false);
+            const [loading, setLoading] = useState(true);
+            const [saveStatus, setSaveStatus] = useState('saved');
+
+            useEffect(() => {
+                const init = async () => {
+                    const u = DB.getUser();
+                    setUser(u);
+                    await loadSites();
+                    setLoading(false);
+                };
+                init();
+            }, []);
+
+            const loadSites = async () => {
+                try {
+                    const projects = await DB.getProjects();
+                    setSites(projects);
+                } catch (e) { console.error(e); }
+            };
+
+            // Auto Save
+            useEffect(() => {
+                if (view !== 'builder' || !activeSite?.id) return;
+                const timer = setTimeout(async () => {
+                    setSaveStatus('saving');
+                    try {
+                        await DB.saveProject(activeSite);
+                        setSaveStatus('saved');
+                    } catch (e) { setSaveStatus('error'); }
+                }, 2000);
+                return () => clearTimeout(timer);
+            }, [activeSite]);
+
+            const handleNavigation = (targetView, action) => {
+                setLoading(true);
+                setTimeout(async () => {
+                    if (action) await action();
+                    setView(targetView);
+                    // Si volvemos a dashboard, recargar lista
+                    if(targetView === 'explore' || targetView === 'mine') await loadSites();
+                    setTimeout(() => setLoading(false), 300);
+                }, 100);
+            };
+
+            const handleCreate = async () => {
+                if (!user) { setAuthModalOpen(true); return; }
+                handleNavigation('builder', async () => {
+                    const newSite = {
+                        id: crypto.randomUUID(),
+                        title: 'Nuevo Proyecto',
+                        authorId: user.name, 
+                        authorName: user.name,
+                        coverImage: '',
+                        blocks: [],
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+                    await DB.saveProject(newSite);
+                    setActiveSite(newSite);
+                });
+            };
+
+            const handleDelete = async (e, siteId) => {
+                e.stopPropagation();
+                if(confirm("¿Eliminar proyecto?")) {
+                    setLoading(true);
+                    await DB.deleteProject(siteId);
+                    await loadSites();
+                    setLoading(false);
+                }
+            };
+
+            const openProject = (siteId, mode) => {
+                handleNavigation(mode, async () => {
+                    // Carga perezosa de bloques
+                    const blocks = await DB.getProjectDetails(siteId);
+                    const site = sites.find(s => s.id === siteId);
+                    setActiveSite({ ...site, blocks: blocks || [] });
+                });
+            };
+
+            const addBlock = (type) => setActiveSite(prev => ({ ...prev, blocks: [...prev.blocks, { id: crypto.randomUUID(), type, content: {} }] }));
+            const updateBlock = (id, content) => setActiveSite(prev => ({ ...prev, blocks: prev.blocks.map(b => b.id === id ? { ...b, content } : b) }));
+            const removeBlock = (id) => setActiveSite(prev => ({ ...prev, blocks: prev.blocks.filter(b => b.id !== id) }));
+            
+            // Drag and Drop Handlers
+            const onDragStart = (e, index) => e.dataTransfer.setData("dragIndex", index);
+            const onDragOver = (e) => e.preventDefault();
+            const onDrop = (e, dropIndex) => {
+                const dragIndex = parseInt(e.dataTransfer.getData("dragIndex"));
+                if (dragIndex === dropIndex) return;
+                const blocks = [...activeSite.blocks];
+                const [moved] = blocks.splice(dragIndex, 1);
+                blocks.splice(dropIndex, 0, moved);
+                setActiveSite(prev => ({ ...prev, blocks }));
+            };
+
+            const globalStyles = (
+                <style>{`
+                    .custom-input { width: 100%; padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; outline: none; transition: all 0.2s; font-size: 0.95rem; color: #1e293b; background: white; }
+                    .custom-input:focus { border-color: #0f172a; box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1); }
+                `}</style>
+            );
+
+            return (
+                <div className="min-h-screen bg-gray-50/50 font-sans text-gray-800">
+                    {globalStyles}
+                    {loading && <LoadingOverlay />}
+                    <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} onLogin={(u) => setUser(u)} />
+
+                    {view !== 'builder' && view !== 'viewer' && (
+                        <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100 h-20 sticky top-0 z-40 px-8 flex items-center justify-between transition-all duration-300">
+                            <div className="flex items-center gap-8">
+                                <h1 className="text-xl font-bold text-gray-900 tracking-tight">EduSite</h1>
+                                <nav className="flex space-x-1 p-1 bg-gray-100/80 rounded-xl">
+                                    <button onClick={() => setView('explore')} className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${view === 'explore' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Explorar</button>
+                                    <button onClick={() => !user ? setAuthModalOpen(true) : setView('mine')} className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${view === 'mine' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Mis Proyectos</button>
+                                </nav>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <Button size="sm" onClick={handleCreate} icon={Plus} variant="primary">Crear Sitio</Button>
+                                {!user ? (
+                                    <div className="pl-4 border-l border-gray-200"><button onClick={() => setAuthModalOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-900 font-semibold transition-colors"><LogIn size={18}/> Iniciar Sesión</button></div>
+                                ) : (
+                                    <div className="pl-4 border-l border-gray-200 flex items-center gap-4 group cursor-pointer relative">
+                                        <div className="text-right"><p className="text-sm font-bold text-gray-900 leading-none">{user.name}</p><button onClick={() => { DB.logout(); setUser(null); setView('explore'); }} className="text-[10px] font-bold text-gray-400 uppercase tracking-wide hover:underline mt-1 hover:text-gray-900">Salir</button></div>
+                                        <div className="h-10 w-10 bg-gray-900 rounded-full flex items-center justify-center text-white font-bold shadow-md ring-4 ring-gray-50">{user.name[0]}</div>
+                                    </div>
+                                )}
+                            </div>
+                        </header>
+                    )}
+
+                    {(view === 'explore' || view === 'mine') && (
+                        <main className="max-w-7xl mx-auto px-8 py-12 animate-fade-in">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                                {sites.filter(s => view === 'explore' ? true : s.authorId === user?.name).map((site, i) => (
+                                    <div key={site.id} onClick={() => openProject(site.id, 'viewer')} className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col relative">
+                                        <div className="h-48 bg-gray-50 relative overflow-hidden">
+                                            {site.coverImage ? <img src={site.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" /> : <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 bg-gray-50/50"><Layout size={20}/></div>}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                            {view === 'mine' && (
+                                                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 duration-300">
+                                                    <button onClick={(e) => { e.stopPropagation(); openProject(site.id, 'builder'); }} className="p-2 bg-white/90 backdrop-blur rounded-xl shadow-sm hover:text-indigo-600 text-gray-600 transition-colors"><Edit3 size={16}/></button>
+                                                    <button onClick={(e) => handleDelete(e, site.id)} className="p-2 bg-white/90 backdrop-blur rounded-xl shadow-sm hover:text-red-600 text-gray-600 transition-colors"><Trash2 size={16}/></button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-5 flex-1 flex flex-col">
+                                            <h3 className="font-bold text-gray-900 text-lg mb-1 leading-snug group-hover:text-indigo-600 transition-colors line-clamp-2">{site.title}</h3>
+                                            <p className="text-xs text-gray-400 mt-auto pt-4 border-t border-gray-50 flex items-center justify-between"><span>{new Date(site.updatedAt).toLocaleDateString()}</span><span>{site.authorName}</span></p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {view === 'mine' && sites.filter(s => s.authorId === user?.name).length === 0 && (
+                                    <div onClick={handleCreate} className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center h-64 text-gray-400 cursor-pointer hover:border-gray-400 hover:bg-gray-50/50 transition-all group">
+                                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><Plus size={24} className="text-gray-300 group-hover:text-gray-500"/></div>
+                                        <span className="font-bold text-sm text-gray-500">Crear Nuevo Proyecto</span>
+                                    </div>
+                                )}
+                            </div>
+                        </main>
+                    )}
+
+                    {view === 'builder' && activeSite && (
+                        <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
+                            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-30">
+                                <div className="flex items-center gap-4">
+                                    <button onClick={() => handleNavigation('mine')} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"><ChevronRight className="rotate-180" size={20}/></button>
+                                    <div className="h-6 w-px bg-gray-200"></div>
+                                    <input value={activeSite.title} onChange={(e) => setActiveSite({...activeSite, title: e.target.value})} className="font-bold text-gray-900 text-lg bg-transparent focus:bg-gray-50 px-3 py-1 rounded-lg outline-none transition-colors w-64 md:w-96" placeholder="Nombre del Proyecto" />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider transition-colors ${saveStatus === 'saving' ? 'text-indigo-500 bg-indigo-50' : 'text-gray-400 bg-gray-100'}`}>{saveStatus === 'saving' ? 'Guardando...' : 'Guardado'}</span>
+                                    <Button size="sm" variant="primary" icon={Save} onClick={() => handleNavigation('mine', handleSave)}>Publicar</Button>
+                                </div>
+                            </header>
+                            <div className="flex flex-1 overflow-hidden">
+                                <div className="flex-1 overflow-y-auto p-8 lg:p-16 scroll-smooth bg-gray-100/50">
+                                    <div className="max-w-5xl mx-auto min-h-[800px] flex flex-col pb-20">
+                                        <div className="mb-8 group relative rounded-2xl overflow-hidden shadow-sm bg-white border border-gray-100">
+                                            <div className="h-64 bg-gray-50 relative">
+                                                {activeSite.coverImage ? <img src={activeSite.coverImage} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-gray-300 font-medium">Añadir Portada</div>}
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300"><div className="bg-white/20 backdrop-blur-md p-2 rounded-xl border border-white/30 flex gap-2"><input className="bg-transparent text-white placeholder-white/70 text-sm px-3 py-1 outline-none w-64" placeholder="URL de portada..." value={activeSite.coverImage || ''} onChange={(e) => setActiveSite({...activeSite, coverImage: e.target.value})}/></div></div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-6">
+                                            {activeSite.blocks.length === 0 && <div className="text-center py-24 px-6 border-2 border-dashed border-gray-200 rounded-2xl bg-white/50"><h3 className="text-lg font-bold text-gray-900 mb-1">Empieza a crear</h3><p className="text-gray-500 text-sm">Selecciona una herramienta del panel derecho.</p></div>}
+                                            {activeSite.blocks.map((block, idx) => (<BlockRenderer key={block.id} block={block} index={idx} updateBlock={updateBlock} removeBlock={removeBlock} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}/>))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="w-80 bg-white border-l border-gray-200 flex flex-col shadow-xl z-20">
+                                    <div className="p-5 border-b border-gray-100 flex items-center justify-between"><h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Herramientas</h3><span className="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded">Click para añadir</span></div>
+                                    <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                                        {['Texto', 'Medios', 'Diseño', 'Interacción'].map(cat => (
+                                            <div key={cat}>
+                                                <h4 className="text-[10px] font-bold text-gray-400 uppercase mb-3 ml-1 tracking-wider">{cat}</h4>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {BLOCK_TYPES.filter(b => b.category === cat).map(type => (
+                                                        <button key={type.type} onClick={() => addBlock(type.type)} className="flex flex-col items-center justify-center p-4 bg-gray-50/50 border border-gray-100 rounded-xl hover:border-gray-400 hover:bg-white hover:shadow-md transition-all group duration-300">
+                                                            {React.createElement(type.icon, { size: 22, className: "text-gray-400 group-hover:text-gray-900 mb-2 transition-colors" })}
+                                                            <span className="text-[11px] font-semibold text-gray-600 group-hover:text-gray-900">{type.label}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {view === 'viewer' && activeSite && (
+                        <div className="min-h-screen bg-white">
+                            <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 px-8 h-20 flex items-center justify-between transition-all">
+                                <span className="font-extrabold text-2xl text-gray-900 tracking-tight">{activeSite.title}</span>
+                                <button onClick={() => handleNavigation('explore')} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500"><X size={24}/></button>
+                            </nav>
+                            {activeSite.coverImage && <div className="w-full h-96 relative"><img src={activeSite.coverImage} className="w-full h-full object-cover"/><div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-80"></div></div>}
+                            <div className={`max-w-4xl mx-auto px-8 pb-24 ${activeSite.coverImage ? '-mt-32 relative z-10' : 'pt-16'}`}>
+                                <div className="bg-white p-10 md:p-16 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 min-h-[60vh] animate-fade-in-up">
+                                    <div className="flex items-center justify-between mb-12 pb-8 border-b border-gray-50">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-white font-bold text-lg shadow-lg">{activeSite.authorName?.[0]}</div>
+                                            <div><p className="font-bold text-gray-900">{activeSite.authorName}</p><p className="text-xs text-gray-500 uppercase tracking-wide">{new Date(activeSite.createdAt).toLocaleDateString()}</p></div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-12">{activeSite.blocks.map((block, idx) => (<BlockRenderer key={block.id} block={block} index={idx} isPreview={true} />))}</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
